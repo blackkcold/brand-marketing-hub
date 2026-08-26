@@ -1,0 +1,6 @@
+# brand-marketing-hub 输出流水线依赖（md2pptx_vivo.py / validate_pptx.py）
+# 安装：python3 -m pip install --user -r requirements.txt
+# 版本为已验证基线；如需升级请回归测试后更新。
+
+python-pptx==1.0.2
+Pillow==11.3.0
