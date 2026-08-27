@@ -1,17 +1,26 @@
-# brand-marketing-hub v4 Architecture
+# brand-marketing-hub v4.1 Architecture
 
-## Five layers
-1. Domain workflows: IP collaboration, celebrity, campaign, research, design-spec.
-2. Evidence layer: claims, sources, factual assets.
-3. Story layer: decision chain and `deck_spec.json`.
-4. Presentation runtime layer: native presentation runtime / artifact runtime / PptxGenJS / legacy Python fallback.
-5. QA layer: semantic, structural, geometry and visual review with repair loop.
+## Product definition
+A universal vivo Source-to-Deck engine: ingest arbitrary business files, research gaps, reorganize the material, and produce an editable visually consistent vivo presentation.
+
+## Seven layers
+1. **Source ingestion** — DOCX/XLSX/PPTX/PDF/CSV and connected sources → source inventory + normalized content units.
+2. **Evidence** — user-source facts + verified external claims + factual assets.
+3. **Coverage** — exhaustive source-unit disposition so no important input disappears silently.
+4. **Story** — decision chain, story archetype and typed deck_spec blocks.
+5. **Visual template** — vivo template manifest/reference/master, independent from story archetype.
+6. **Presentation runtime** — native presentation / PowerPoint / artifact / PptxGenJS / legacy fallback.
+7. **QA & revision** — coverage, semantic, embedded-assets, template fidelity, structural, geometry, visual, repair.
+
+Domain modules (IP, celebrity, campaign, design-spec) are optional intelligence modules attached to layers 2–4. They never own rendering.
 
 ## Source-of-truth hierarchy
-User constraints and supplied source material -> verified evidence manifests -> deck_spec.json -> runtime projection (PPTX/Markdown) -> rendered QA artifacts.
+User instruction → source files/content units → verified evidence → coverage + deck_spec → visual template/reference → PPTX runtime projection → rendered QA artifacts.
 
-## Why v4
-v3.x coupled content, evidence and layout in Markdown and treated structural validation as presentation quality. v4 separates the concerns so factual reliability, template fidelity and visual quality can be tested independently.
-
-## Compatibility
-Existing Markdown templates and `md2pptx_vivo.py` remain available as legacy input/output paths. New work should use v4 manifests and adapters whenever the host environment supports them.
+## Key invariants
+- every source unit has one disposition;
+- story archetype != visual template;
+- factual image != generated concept;
+- linked web image != final embedded asset;
+- domain method != renderer;
+- structural pass != visual pass.
