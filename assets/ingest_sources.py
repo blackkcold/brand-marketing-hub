@@ -180,6 +180,19 @@ def ingest_xlsx(path:Path,source_id:str,b:UnitBuilder):
 
 def ingest_pptx(path:Path,source_id:str,b:UnitBuilder):
     prs=Presentation(path)
+    master_meta=[]
+    for mi,master in enumerate(prs.slide_masters,1):
+        master_meta.append({
+            "master":mi,
+            "layout_names":[layout.name for layout in master.slide_layouts],
+            "shape_count":len(master.shapes),
+        })
+    b.add(source_id,"metadata",{},
+          {"object":"presentation","slide_count":len(prs.slides),
+           "slide_width":prs.slide_width,"slide_height":prs.slide_height,
+           "masters":master_meta},
+          preserve_mode="optional",importance="low",
+          notes="PPTX presentation/master inventory; native runtime should inspect full theme/master when this source is a style-reference.")
     for si,slide in enumerate(prs.slides,1):
         texts=[]
         for sh in slide.shapes:
