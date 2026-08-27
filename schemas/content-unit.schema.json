@@ -21,7 +21,8 @@
           "unit_type",
           "locator",
           "content",
-          "preserve_mode"
+          "preserve_mode",
+          "importance"
         ],
         "properties": {
           "unit_id": {
