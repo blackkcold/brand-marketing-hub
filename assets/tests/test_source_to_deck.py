@@ -32,6 +32,8 @@ def main():
         content=json.loads((bundle/"content_units.json").read_text(encoding="utf-8"))
         assert len(sources["sources"])==5
         assert {s["kind"] for s in sources["sources"]}=={"docx","xlsx","pptx","pdf","csv"}
+        ppt_source=next(s for s in sources["sources"] if s["kind"]=="pptx")
+        assert ppt_source["role"]=="content-source", ppt_source
         assert any(u["unit_type"]=="cell-range" and u.get("formulae") for u in content["units"])
         assert any(u["unit_type"]=="slide-text" for u in content["units"])
         assert any(u["unit_type"]=="pdf-page" for u in content["units"])
@@ -41,6 +43,13 @@ def main():
             extracted=bundle/u["content"]["extracted_path"]
             assert extracted.exists() and extracted.stat().st_size>0
         assert all(not Path(s["path"]).is_absolute() for s in sources["sources"] if s.get("path"))
+
+        styled=d/"styled"
+        p=subprocess.run([sys.executable,str(INGEST),str(d/"c.pptx"),"--out-dir",str(styled),
+                          "--role","c.pptx=style-reference"],capture_output=True,text=True)
+        assert p.returncode==0,p.stdout+p.stderr
+        styled_source=json.loads((styled/"source_inventory.json").read_text(encoding="utf-8"))["sources"][0]
+        assert styled_source["role"]=="style-reference",styled_source
 
         first=content["units"][0]["unit_id"]
         deck={"version":"4.1","deck":{"title":"QA","purpose":"test","story_archetype":"custom","visual_template":"vivo-house",
