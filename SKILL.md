@@ -1,7 +1,7 @@
 ---
 name: brand-marketing-hub
 description: 品牌营销一站式工作包（总入口）。四大模块：IP联名、艺人评估、传播方案、品牌视觉合规（vivo VI 3.1 内置）。触发词包括"品牌调研"、"IP联名方案"、"IP合作提案"、"IP评估"、"联名报价测算"、"艺人分析报告"、"代言人评估"、"名人备选"、"艺人TGI分析"、"风险预判"、"1+N艺人矩阵"、"传播方案"、"传播规划"、"新品上市传播"、"campaign方案"、"传播作战图"、"RTB构建"、"KOL传播排期"、"md转pptx"、"提案PPT"、"品牌视觉"、"VI"、"色值"、"logo规范"、"标识规范"、"设计审查"、"品牌一致性"、"邮件签名档"等。agent 自主识别意图，按 L0–L3 分层路由选模块执行，支持复合任务多模块串联，经 md→pptx 流水线输出并自动附着品牌合规参数。
-version: 2.0.0
+version: 3.2.0
 ---
 
 # 品牌营销调研中心（brand-marketing-hub）
@@ -23,6 +23,7 @@ version: 2.0.0
 | 艺人/代言人/名人评估、TGI分析、舆情风险、1+N矩阵、明星合作玩法 | references/celebrity.md | assets/template-celebrity-report.md |
 | 传播方案、campaign、上市传播、RTB、KOL排期、传播作战图、预算分配 | references/campaign.md | assets/template-campaign-plan.md |
 | 品牌视觉、VI、色值、logo/标识规范、设计审查、品牌一致性、邮件签名档、海报/KV 规范 | references/design-spec.md | assets/vivo-design-spec/、references/design-spec-rules.md |
+| 调研洞察、市场趋势、人群画像、候选筛选、数据分析、业务判断 | 本页“输出流水线” | assets/template-research-insight.md |
 | 需要产出pptx（md转pptx、PPT骨架、提案初稿） | 本页"输出流水线" | assets/md2pptx_vivo.py（默认，vivo企业风格）/ md2pptx.py（通用骨架） |
 
 **跨切合规层**：凡涉及视觉交付物（deck、KV、海报、社媒头像、签名档）的任务，无论主模块是哪个，交付前必须走 design-spec 模块的 W3（品牌参数附着）与 W2（合规自查）。
@@ -63,16 +64,32 @@ version: 2.0.0
 
 design-spec 模块的方法论内核：一致性四锚点（标识/颜色/字体/排版）、权威层级（VONE > 原件 > 细则 > 速查）、四条工作流（W1 查询 / W2 审查 / W3 附着 / W4 更新）。
 
-## 输出流水线（md → pptx，v2.1）
+## 输出流水线（md → pptx，v3.2）
 
-设计系统：`references/deck-style.md`（提炼自 8 份真实 vivo 内部 deck：封面渐变+字标、目录、Part 章节页、蓝标题条内容页、卡片/表格/图文版式、结尾页）。
+设计系统：`references/deck-style.md`（提炼自真实 vivo/关联 deck）。v3.2 不再把所有页面强制成蓝标题条+bullet，而是按显式 archetype 与内容密度生成；支持自适应框体、必要时拆页，以及原生 bar/line/doughnut 图表。
 
-1. 按 deck-style.md 的页面类型填充 md 骨架。方言：`# 标题`→封面；`<!-- deck: 副标题 -->`；`<!-- deck: meta: 部门｜日期｜密级 -->`→封面小字；`## P{n}｜标题`→slide；`@layout bullets|cards N|split left/right|table|part|end`；`@sub 右侧结论句`；`@img 路径 | 图注`；`### 卡片标题`+`-`→卡片要点；markdown 表格→table 页；`-`/缩进`-`→两级 bullet；`>`→演讲者备注。
+1. 按 deck-style.md 的页面类型填充 md 骨架。方言：`# 标题`→封面；`## P{n}｜标题`→slide；`@layout` 显式选择版式；`@chart bar|line|doughnut` 紧随 Markdown 表格生成原生图表；其余 `@sub`、`@source`、`@profile`、`@img`、`@stat`、卡片和备注语法保持兼容。
 2. 转换前核查：P编号连续、单页一级要点≤6、占位符【】清理、敏感数据脱敏、每页标题即论点。
-3. 执行：`python3 ~/.vbuddy/skills/brand-marketing-hub/assets/md2pptx_vivo.py 输入.md 输出.pptx`（依赖 python-pptx + Pillow）。通用非 vivo 场景用旧版 `md2pptx.py`。
-4. 转换后核查（纯代码，不操控任何应用）：页数一致；读回 pptx 校验每页 shape 坐标不越界（封面/结尾斜向色块除外）、文本估算高度不溢出、表格行列数正确、图片与渐变/字标在位。
-5. 品牌视觉合规自查（跨切合规层）：色盘/字号须落在 deck-style.md 令牌表内；含标识/联合标识页核对比例与安全距离；不符项回 design-spec W2/W3 修正。
+3. 执行：`python3 assets/md2pptx_vivo.py 输入.md 输出.pptx`（依赖 python-pptx + Pillow；扩展 QA 依赖见 `references/pptx-workflow.md`）。通用非 vivo 场景用旧版 `md2pptx.py`。
+4. 转换后核查（纯代码，不操控任何应用）：页数一致；读回 pptx 校验每页 shape 坐标不越界、文本估算高度不溢出、表格行列数正确、图片与渐变/字标在位、色值落在 profile、来源与语义规则满足要求。
+5. 品牌视觉合规自查（跨切合规层）：色盘/字号须落在对应 profile；含标识/联合标识页核对比例与安全距离；不符项回 design-spec W2/W3 修正。
 6. 交付时告知：pptx 为骨架初稿，视觉终稿（KV/图片/工艺）按 VI 原件人工精修，争议回 L3 原件层。
+
+### PPTX 能力与依赖
+
+本 skill 将 PPTX 作为一等输出格式，支持可编辑文本、表格、形状、图片、speaker notes 和原生基础图表。依赖、PPTX 结构验证、PDF 视觉复核和用户文件只读规则见 `references/pptx-workflow.md`。
+
+## PPT 生成前置确认（强制）
+
+凡用户要求生成或改版 PPTX，**在生成前必须询问并确认使用哪个模板/风格**，不得根据关键词静默猜测。询问时至少提供：
+
+1. `传播方案`：策略框架 → 内容/事件/转化 → 时间线 → 预算 → 风险；
+2. `艺人评估`：筛选口径 → 数据证据 → 候选矩阵 → 风险 → 1+N 组合；
+3. `IP 联名`：IP 文化资产 → 产品连接 → 创意/KV → 权益 → 报价与时间线；
+4. `调研洞察`：市场事实 → 趋势/人群 → 数据筛选 → 洞察模型 → 业务判断；
+5. `自定义模板`：用户提供 `.pptx/.potx` 或明确版式要求。
+
+若用户已明确指定模板，可直接确认后执行；若用户只说“做一份 PPT”，必须先询问模板。模板确认后还要确认：是否使用 vivo house profile、是否有真实图片/数据、是否允许生成待补字段。模板选择记录在本次 deck 的 Markdown 头部（`@profile` 或 meta）和输出说明中。
 
 样张参考：`assets/samples/` 保留历史样张；`assets/samples/v0.2_*.pptx` 为当前 v2.1 renderer 生成的新版样张。历史样张仅用于迁移对比，不代表当前视觉输出。
 

@@ -1,661 +1,615 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""vivo 2026 Markdown -> PPTX renderer.
+
+The renderer is intentionally content-led: the Markdown layout directive selects
+an archetype instead of forcing every page into a blue title bar + bullets page.
+Old syntax remains supported for backwards compatibility.
 """
-md2pptx_vivo.py — vivo 企业风格 deck 转换器（brand-marketing-hub 输出流水线 v2.1）
+from __future__ import annotations
 
-设计系统见 references/deck-style.md（提炼自 8 份 vivo 内部真实 deck）。
-版式：封面(渐变+字标) / 目录 / Part章节页 / 内容页(蓝标题条+bullet/卡片/表格/图文) / 结尾页。
-
-md 方言（与 v2 完全兼容）：
-  # 文档标题                  → 封面主标题（40pt 白）
-  <!-- deck: 副标题 -->        → 封面副标题（20pt）
-  <!-- deck: meta: 部门｜日期｜密级 --> → 封面左下小字（9pt）
-  ## P{n}｜页面标题            → 一页 slide
-  @layout bullets|cards N|split left/right|table|part|end   （默认 bullets）
-  @sub 右侧黑色副标题          → 标题条右侧的补充说明
-  @img 路径 | 图注             → split 版式的图片（cover-crop 填充；缺失时保留图槽占位）
-  ### 卡片标题                → cards 版式的卡片（后接 - 要点）
-  - 要点 / 缩进两空格 - 子要点   → 两级 bullet
-  | a | b |                   → table 版式（markdown 表格）
-  > 备注                      → 演讲者备注
-
-v2.1 修复（相对 v2）：
-  - 封面去重：显式 `## P1｜封面` 视为封面页，不再额外生成重复封面；
-  - @layout 健壮解析：`cards N` 的 N 与 `split left|right` 的侧向均被保留；
-  - split 侧向不再丢失；cards 尊重 ncol（支持多行排布）；
-  - 渲染期溢出闸门：按字宽估算文本高度，超框即告警；
-  - 字体安全回退：微软雅黑 → PingFang SC → Arial/Helvetica（不抑制任何脚本类型）；
-  - 图片 cover-crop：split 图片铺满目标框并裁切溢出，而非留白；
-  - split 缺失图片：显式 @img 但文件缺失时保留清晰图槽占位，无 @img 才退化为 bullets；
-  - 表格健壮回退：行/列不齐自动补齐，空表回退 bullets；
-  - 页码：直接使用 md 的 P 编号，与源文档一致。
-
-用法：python3 md2pptx_vivo.py 输入.md 输出.pptx
-依赖：python-pptx、Pillow（见 requirements.txt）
-"""
-import re
-import os
-import sys
 import glob
+import os
+import re
+import sys
+from pathlib import Path
+
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+from pptx.chart.data import ChartData
+from pptx.opc.packuri import PackURI
+from pptx.oxml.ns import qn
+from pptx.util import Inches, Pt
 
 try:
-    from pptx import Presentation
-    from pptx.util import Inches, Pt
-    from pptx.dml.color import RGBColor
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    from pptx.enum.shapes import MSO_SHAPE
-    from pptx.oxml.ns import qn
+    from PIL import Image
 except ImportError:
-    sys.exit("缺少依赖：python3 -m pip install --user -r requirements.txt")
-
-# ---------- 设计令牌（VI 3.1 速查 + 模板提炼） ----------
-BLUE   = '1E46E6'   # 品牌蓝
-NAVY   = '06175E'   # 深蓝
-LIGHT  = 'D1EBFE'   # 浅蓝
-CARD   = 'EAF2FF'   # 卡片浅蓝底
-INK    = '111111'
-GRAY   = '565656'
-LGRAY  = '9AA3B2'
-RED    = 'E6001E'
-WHITE  = 'FFFFFF'
-GRAD_A = '3458F6'   # 封面渐变亮端（2026 参考页 house blue）
-GRAD_B = '1E46E6'   # 封面渐变深端（VI 3.1 品牌蓝）
-META_C = 'C9D8FF'   # 封面左下小字
-TABLE_ALT = 'F2F7FF'  # 表格隔行
-
-# 字体安全回退链（不抑制任何脚本类型：latin/ea/cs 均写入同一 typeface）
-FONT_CHAIN = ['微软雅黑', 'PingFang SC', 'Arial', 'Helvetica']
-
-LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    'vivo-deck', 'vivo_wordmark_white.png')
+    Image = None
 
 SW, SH = 13.333, 7.5
+BLUE, BRIGHT, NAVY = '1E46E6', '3458F6', '06175E'
+LIGHT, SURFACE, INK = 'D1EBFE', 'EAF2FF', '111111'
+GRAY, MUTED, GOLD, RED, WHITE = '565656', '374151', 'F6C84C', 'E6001E', 'FFFFFF'
+GRAD_A, GRAD_B = '3458F6', '1E46E6'
+TABLE_ALT = 'F2F7FF'
+LOGO = Path(__file__).resolve().parent / 'vivo-deck' / 'vivo_wordmark_white.png'
+HOUSE_TEMPLATE = Path(os.environ.get(
+    'VIVO_PPT_TEMPLATE',
+    '/Users/11169285/Library/CloudStorage/OneDrive-个人/桌面/vivo/产品 - 品牌营销/vivo PPT模版_20230727-20250325.pptx',
+))
+OVERFLOW_WARNINGS: list[str] = []
 
-# 渲染期溢出告警收集（供 build 汇总输出）
-OVERFLOW_WARNINGS = []
+PROFILE_PALETTES = {
+    'vivo-house': (BLUE, BRIGHT, NAVY, LIGHT),
+    'campaign': (BLUE, BRIGHT, NAVY, LIGHT),
+    'celebrity': (BLUE, BRIGHT, NAVY, LIGHT),
+    'ip-collab': (BLUE, BRIGHT, NAVY, LIGHT),
+    'first': ('4160FF', '3756FE', NAVY, LIGHT),
+    'disney': ('4661F4', '80A0D0', NAVY, 'E0C0E0'),
+    'iqoo': ('C00000', 'F0B419', '111111', 'FFF4D6'),
+    'dark-trend': ('111111', '5B4BFF', 'FFFFFF', '242424'),
+}
 
-
-def C(hexstr):
-    return RGBColor.from_string(hexstr)
-
-
-# ---------- 字体回退 ----------
-def _font_available(name):
-    """按平台探测系统字体是否存在，覆盖 macOS 系统字体资产目录。"""
-    if sys.platform == 'darwin':
-        if name == 'PingFang SC':
-            candidates = [
-                '/System/Library/Fonts/PingFang.ttc',
-                os.path.expanduser('~/Library/Fonts/PingFang.ttc'),
-                '/Library/Fonts/PingFang.ttc',
-            ]
-            candidates.extend(glob.glob('/System/Library/AssetsV2/**/PingFang*.ttc', recursive=True))
-            candidates.extend(glob.glob(os.path.expanduser('~/Library/Application Support/*/PingFang*.ttc')))
-            return any(os.path.exists(path) for path in candidates)
-        if name == '微软雅黑':
-            return False  # macOS 默认无微软雅黑
-        if name == 'Arial':
-            return (os.path.exists('/Library/Fonts/Arial.ttf')
-                    or os.path.exists('/System/Library/Fonts/Supplemental/Arial.ttf'))
-        if name == 'Helvetica':
-            return os.path.exists('/System/Library/Fonts/Helvetica.ttc')
-    elif sys.platform.startswith('win'):
-        if name == '微软雅黑':
-            return os.path.exists(r'C:\Windows\Fonts\msyh.ttc')
-        if name == 'PingFang SC':
-            return False
-        if name == 'Arial':
-            return os.path.exists(r'C:\Windows\Fonts\arial.ttf')
-        if name == 'Helvetica':
-            return False
-    return True  # 未知平台：默认可用
+FONT_CHAIN = ['微软雅黑']
 
 
-def resolve_font():
-    """按回退链返回第一个可用的字体名。"""
-    for name in FONT_CHAIN:
-        if _font_available(name):
-            return name
-    # macOS 的 PingFang 可能由 CoreText 提供但不暴露为固定路径；
-    # 中文内容宁可声明 PingFang，也不要回退到没有 CJK 字形的 Arial。
-    if sys.platform == 'darwin':
-        return 'PingFang SC'
-    return FONT_CHAIN[0]
+def C(value: str) -> RGBColor:
+    return RGBColor.from_string(value.replace('#', ''))
 
 
-FONT = resolve_font()
+def font_available(name: str) -> bool:
+    if name in ('vivoSans', 'VIVOTYPECN'):
+        patterns = [f'/Library/Fonts/*{name}*', f'/System/Library/Fonts/**/*{name}*',
+                    os.path.expanduser(f'~/Library/Fonts/*{name}*')]
+        return any(glob.glob(p, recursive=True) for p in patterns)
+    if name == 'PingFang SC':
+        return os.path.exists('/System/Library/Fonts/PingFang.ttc')
+    if name == '微软雅黑':
+        return os.path.exists('/Library/Fonts/msyh.ttf') or sys.platform.startswith('win')
+    return True
 
 
-def set_font(run, name=FONT):
-    """为 run 写入 latin/ea/cs 三种脚本的 typeface（不抑制任何类型）。"""
+# The output contract is strict even when the local QA renderer substitutes the font.
+FONT = '微软雅黑'
+
+
+def set_font(run, name: str = FONT):
     run.font.name = name
-    rPr = run._r.get_or_add_rPr()
+    rpr = run._r.get_or_add_rPr()
     for tag in ('a:latin', 'a:ea', 'a:cs'):
-        el = rPr.find(qn(tag))
-        if el is None:
-            el = rPr.makeelement(qn(tag), {})
-            rPr.append(el)
-        el.set('typeface', name)
+        node = rpr.find(qn(tag))
+        if node is None:
+            node = rpr.makeelement(qn(tag), {})
+            rpr.append(node)
+        node.set('typeface', name)
 
 
-# ---------- 基础形状 ----------
-def alpha(shape, pct):
-    """给纯色填充加透明度，pct=透明百分比(0-100)，如 90 表示 10% 不透明。"""
-    clr = shape.fill._xPr.find(qn('a:solidFill')).find(qn('a:srgbClr'))
-    clr.append(clr.makeelement(qn('a:alpha'), {'val': str(int((100 - pct) * 1000))}))
+def replace_text(shape, text, size, color=WHITE, bold=False):
+    """Replace a template placeholder while keeping it as an editable text shape."""
+    tf = shape.text_frame
+    tf.clear(); tf.word_wrap = True
+    p = tf.paragraphs[0]; p.line_spacing = 1.15
+    r = p.add_run(); r.text = str(text); r.font.size = Pt(size)
+    r.font.color.rgb = C(color); r.font.bold = bold; set_font(r)
 
 
-def textbox(slide, l, t, w, h, runs, size, color, bold=False, align=PP_ALIGN.LEFT,
-            lh=None, anchor=MSO_ANCHOR.TOP, space_after=None):
-    """runs: str 或 [(text,color,bold),...]"""
-    tb = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    tf.vertical_anchor = anchor
-    p = tf.paragraphs[0]
-    p.alignment = align
-    if lh:
-        p.line_spacing = lh
-    if space_after:
-        p.space_after = Pt(space_after)
-    if isinstance(runs, str):
-        runs = [(runs, color, bold)]
-    for txt, col, bd in runs:
-        r = p.add_run()
-        r.text = txt
-        r.font.size = Pt(size)
-        r.font.bold = bd
-        r.font.color.rgb = C(col)
-        set_font(r)
-    return tb
+def scale_template_slide(slide, sx, sy):
+    layout_ph = {p.placeholder_format.idx: p for p in slide.slide_layout.placeholders}
+    for shape in slide.shapes:
+        if shape.is_placeholder:
+            sp_pr = shape._element.find(qn('p:spPr'))
+            xfrm = sp_pr.find(qn('a:xfrm')) if sp_pr is not None else None
+            if xfrm is None:
+                src = layout_ph.get(shape.placeholder_format.idx)
+                if src is not None and src._element.find(qn('p:spPr')).find(qn('a:xfrm')) is not None:
+                    from copy import deepcopy
+                    shape._element.find(qn('p:spPr')).append(deepcopy(src._element.find(qn('p:spPr')).find(qn('a:xfrm'))))
+        shape.left = int(shape.left * sx); shape.top = int(shape.top * sy)
+        shape.width = int(shape.width * sx); shape.height = int(shape.height * sy)
 
 
-def bar(slide, l, t, w, h, color):
-    sh = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-                                Inches(l), Inches(t), Inches(w), Inches(h))
-    sh.fill.solid()
-    sh.fill.fore_color.rgb = C(color)
-    sh.line.fill.background()
-    sh.shadow.inherit = False
-    try:
-        sh.adjustments[0] = 0.12
-    except Exception:
-        pass
-    return sh
+def scale_template_layout(layout, sx, sy):
+    """Scale background pictures and shapes on a layout to fill the new canvas."""
+    sp_tree = layout._element.find(qn('p:cSld') + '/' + qn('p:spTree'))
+    if sp_tree is None:
+        return
+    for xfrm in sp_tree.iter(qn('a:xfrm')):
+        off = xfrm.find(qn('a:off')); ext = xfrm.find(qn('a:ext'))
+        if off is not None and off.get('x') is not None:
+            off.set('x', str(int(round(float(off.get('x')) * sx))))
+        if off is not None and off.get('y') is not None:
+            off.set('y', str(int(round(float(off.get('y')) * sy))))
+        if ext is not None and ext.get('cx') is not None:
+            ext.set('cx', str(int(round(float(ext.get('cx')) * sx))))
+        if ext is not None and ext.get('cy') is not None:
+            ext.set('cy', str(int(round(float(ext.get('cy')) * sy))))
 
 
-# ---------- 文本估算（溢出闸门） ----------
-def cjk_w(text, size_pt):
-    """估算文本宽度(in)：CJK 按字号宽，拉丁按 0.55 倍。"""
-    w = 0
-    for ch in text:
-        w += size_pt if ord(ch) > 0x2E00 else size_pt * 0.55
-    return w / 72.0
+def prepare_house_template(deck):
+    """Load the requested vivo cover/end pages and keep them native/editable."""
+    prs = Presentation(str(HOUSE_TEMPLATE))
+    source_w, source_h = prs.slide_width / 914400, prs.slide_height / 914400
+    prs.slide_width = Inches(SW); prs.slide_height = Inches(SH)
+    sx, sy = SW / source_w, SH / source_h
+    cover_slide, end_slide = prs.slides[0], prs.slides[-1]
+    # Reserve a high slide part name so python-pptx can append generated slides
+    # without creating duplicate ZIP members, while preserving the native end page.
+    end_slide.part._partname = PackURI('/ppt/slides/slide99.xml')
+    scale_template_slide(cover_slide, sx, sy); scale_template_slide(end_slide, sx, sy)
+    scale_template_layout(cover_slide.slide_layout, sx, sy)
+    scale_template_layout(end_slide.slide_layout, sx, sy)
+    text_shapes = [s for s in cover_slide.shapes if getattr(s, 'has_text_frame', False)]
+    placeholders = [s for s in cover_slide.placeholders if getattr(s, 'has_text_frame', False)]
+    if len(placeholders) >= 2:
+        replace_text(placeholders[0], deck.get('title') or '未命名 deck', 40, WHITE, True)
+        replace_text(placeholders[1], deck.get('sub') or '', 20, 'D1EBFE')
+    if text_shapes:
+        replace_text(text_shapes[0], deck.get('meta') or '', 9, WHITE)
+    if len(text_shapes) > 1:
+        replace_text(text_shapes[1], '保密等级', 9, 'F6C84C')
+    end_placeholders = [s for s in end_slide.placeholders if getattr(s, 'has_text_frame', False)]
+    if end_placeholders:
+        replace_text(end_placeholders[0], 'THANK YOU\n谢谢', 40, WHITE, True)
+    return prs, end_slide
 
 
-def est_lines(text, size_pt, width_in):
-    """按字宽估算文本在给定宽度下占用的行数。"""
-    lines = 0
-    for para in text.split('\n'):
-        w = 0
+def move_slide_to_end(prs, slide):
+    for sld_id in list(prs.slides._sldIdLst):
+        if prs.part.related_part(sld_id.rId) is slide.part:
+            prs.slides._sldIdLst.remove(sld_id)
+            prs.slides._sldIdLst.append(sld_id)
+            return
+
+
+def textbox(slide, x, y, w, h, text, size=12, color=INK, bold=False,
+            align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP, margin=0.04,
+            font=FONT, italic=False):
+    shape = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    tf = shape.text_frame
+    tf.clear(); tf.word_wrap = True; tf.margin_left = Inches(margin)
+    tf.margin_right = Inches(margin); tf.margin_top = Inches(margin); tf.margin_bottom = Inches(margin)
+    tf.vertical_anchor = valign
+    p = tf.paragraphs[0]; p.alignment = align; p.line_spacing = 1.15
+    run = p.add_run(); run.text = str(text); run.font.size = Pt(size)
+    run.font.color.rgb = C(color); run.font.bold = bold; run.font.italic = italic; set_font(run, font)
+    return shape
+
+
+def fit_text_size(text, width, height, preferred, minimum=10, line_factor=1.18):
+    """Return the largest readable size that fits the requested text box."""
+    size = preferred
+    while size > minimum and est_lines(text, size, width) * size * line_factor / 72 > height:
+        size -= 0.5
+    return max(size, minimum)
+
+
+def rect(slide, x, y, w, h, fill, radius=False, line=None, transparency=0):
+    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE if radius else MSO_SHAPE.RECTANGLE,
+                                   Inches(x), Inches(y), Inches(w), Inches(h))
+    shape.fill.solid(); shape.fill.fore_color.rgb = C(fill)
+    if transparency:
+        shape.fill.transparency = transparency / 100
+    if line:
+        shape.line.color.rgb = C(line)
+    else:
+        shape.line.fill.background()
+    return shape
+
+
+def cjk_width(text, size):
+    return sum(size if ord(ch) > 0x2E00 else size * 0.52 for ch in text) / 72
+
+
+def est_lines(text, size, width):
+    total = 0
+    for para in str(text).split('\n'):
+        current = 0
+        lines = 1
         for ch in para:
-            cw = size_pt if ord(ch) > 0x2E00 else size_pt * 0.55
-            w += cw
-            if w / 72.0 > width_in:
-                lines += 1
-                w = cw
-        lines += 1
-    return lines
+            current += size if ord(ch) > 0x2E00 else size * 0.52
+            if current / 72 > max(width, 0.2):
+                lines += 1; current = size if ord(ch) > 0x2E00 else size * 0.52
+        total += lines
+    return max(total, 1)
 
 
-def est_bullets_height(bullets, l1=12.0, width_in=12.1):
-    """估算两级 bullet 列表的渲染高度(in)。"""
-    total = 0.0
-    for lv, txt in bullets:
-        size = l1 if lv == 0 else l1 - 1
-        lines = est_lines(txt, size, width_in)
-        total += lines * size * 1.25 / 72.0
-        total += (8 if lv == 0 else 4) / 72.0
-    return total
+def warn(page, label, height, box_height):
+    if height > box_height + 0.01:
+        OVERFLOW_WARNINGS.append(f'P{page["no"]}「{page["title"]}」{label}: {height:.2f}in > {box_height:.2f}in')
 
 
-def _warn_overflow(page, label, est_h, box_h):
-    if est_h > box_h:
-        OVERFLOW_WARNINGS.append(
-            f'P{page["no"]}「{page["title"]}」{label} 估算高度 {est_h:.2f}in > 框高 {box_h:.2f}in')
-
-
-# ---------- 解析 ----------
 SLIDE_RE = re.compile(r'^##\s+P(\d+)[｜|]\s*(.+)$')
 
 
 def parse_md(path):
-    deck = {'title': None, 'sub': None, 'meta': None, 'pages': []}
+    deck = {'title': None, 'sub': None, 'meta': None, 'profile': 'vivo-house', 'pages': [], 'source': path}
     cur = None
-    for raw in open(path, encoding='utf-8'):
-        line = raw.rstrip('\n')
-        m = re.search(r'<!--\s*deck:\s*(.+?)\s*-->', line)
-        if m and cur is None:
-            body = m.group(1)
-            if body.startswith('meta:'):
-                deck['meta'] = body[5:].strip()
-            else:
-                deck['sub'] = body
+    for raw in Path(path).read_text(encoding='utf-8').splitlines():
+        line = raw.rstrip()
+        comment = re.search(r'<!--\s*deck:\s*(.+?)\s*-->', line)
+        if comment and cur is None:
+            body = comment.group(1).strip()
+            if body.startswith('meta:'): deck['meta'] = body[5:].strip()
+            else: deck['sub'] = body
             continue
         if line.startswith('# ') and cur is None:
-            deck['title'] = line[2:].strip()
-            continue
-        m = SLIDE_RE.match(line)
-        if m:
-            cur = {'no': int(m.group(1)), 'title': m.group(2).strip(),
-                   'layout': None, 'layout_arg': None, 'sub': None,
-                   'img': None, 'imgcap': None,
-                   'bullets': [], 'cards': [], 'table': [], 'notes': []}
-            deck['pages'].append(cur)
-            continue
-        if cur is None:
-            continue
+            deck['title'] = line[2:].strip(); continue
+        match = SLIDE_RE.match(line)
+        if match:
+            cur = {'no': int(match.group(1)), 'title': match.group(2).strip(), 'layout': None,
+                   'arg': None, 'sub': None, 'source': None, 'profile': None, 'img': [],
+                    'bullets': [], 'cards': [], 'table': [], 'notes': [], 'stats': [], 'chart': None}
+            deck['pages'].append(cur); continue
+        if cur is None: continue
         if line.startswith('@layout'):
-            parts = line.split()
-            cur['layout'] = parts[1] if len(parts) > 1 else 'bullets'
-            cur['layout_arg'] = parts[2] if len(parts) > 2 else None
-            continue
-        if line.startswith('@part'):
-            cur['layout'] = 'part'
-            continue
-        if line.startswith('@sub'):
-            cur['sub'] = line[4:].strip()
-            continue
-        if line.startswith('@img'):
-            rest = line[4:].strip()
-            if '|' in rest:
-                p, cap = rest.split('|', 1)
-                cur['img'], cur['imgcap'] = p.strip(), cap.strip()
-            else:
-                cur['img'] = rest
-            continue
-        if line.startswith('### '):
-            cur['cards'].append({'title': line[4:].strip(), 'items': []})
-            continue
-        m = re.match(r'^>\s*(.*)$', line)
-        if m and m.group(1):
-            cur['notes'].append(m.group(1))
-            continue
-        if line.strip().startswith('|'):
+            parts = line.split(); cur['layout'] = parts[1] if len(parts) > 1 else 'bullets'; cur['arg'] = ' '.join(parts[2:])
+        elif line.startswith('@profile'):
+            cur['profile'] = line.split(maxsplit=1)[1].strip(); deck['profile'] = cur['profile']
+        elif line.startswith('@sub'): cur['sub'] = line[4:].strip()
+        elif line.startswith('@source'): cur['source'] = line[7:].strip()
+        elif line.startswith('@img'):
+            rest = line[4:].strip(); p, _, cap = rest.partition('|'); cur['img'].append((p.strip(), cap.strip()))
+        elif line.startswith('@stat'):
+            rest = line[5:].strip(); value, _, label = rest.partition('|'); cur['stats'].append((value.strip(), label.strip()))
+        elif line.startswith('@chart'):
+            chart_type = line.split(maxsplit=1)[1].strip().lower() if len(line.split(maxsplit=1)) > 1 else 'bar'
+            aliases = {'column': 'bar', 'doughnut': 'doughnut', 'donut': 'doughnut', '环图': 'doughnut', '柱状图': 'bar', '折线图': 'line'}
+            cur['chart'] = aliases.get(chart_type, chart_type)
+        elif line.startswith('### '): cur['cards'].append({'title': line[4:].strip(), 'items': []})
+        elif line.startswith('> '): cur['notes'].append(line[2:].strip())
+        elif line.strip().startswith('|'):
             cells = [c.strip() for c in line.strip().strip('|').split('|')]
-            if not all(set(c) <= set('-: ') for c in cells):
-                cur['table'].append(cells)
-            continue
-        m2 = re.match(r'^\s{2,}-\s+(.+)$', line)
-        if m2:
-            if cur['layout'] == 'cards' and cur['cards']:
-                cur['cards'][-1]['items'].append(m2.group(1))
-            else:
-                cur['bullets'].append((1, m2.group(1)))
-            continue
-        m1 = re.match(r'^-\s+(.+)$', line)
-        if m1:
-            if cur['layout'] == 'cards' and cur['cards']:
-                cur['cards'][-1]['items'].append(m1.group(1))
-            else:
-                cur['bullets'].append((0, m1.group(1)))
-            continue
+            if not all(set(c) <= set('-: ') for c in cells): cur['table'].append(cells)
+        elif re.match(r'^\s{2,}-\s+', line):
+            item = re.sub(r'^\s{2,}-\s+', '', line)
+            if cur['cards']: cur['cards'][-1]['items'].append(item)
+            else: cur['bullets'].append((1, item))
+        elif re.match(r'^-\s+', line):
+            item = re.sub(r'^-\s+', '', line)
+            if cur['cards']: cur['cards'][-1]['items'].append(item)
+            else: cur['bullets'].append((0, item))
     return deck
 
 
-# ---------- 页面渲染 ----------
-def gradient_bg(slide):
-    bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(SW), Inches(SH))
-    bg.fill.gradient()
-    bg.fill.gradient_angle = 45
-    stops = bg.fill.gradient_stops
-    # 确保至少两个渐变停靠点（默认即 2 个，防御性补齐）
-    while len(stops) < 2:
-        stops.add_position(1.0)
-    stops[0].color.rgb = C(GRAD_A)
-    stops[0].position = 0.0
-    stops[1].color.rgb = C(GRAD_B)
-    stops[1].position = 1.0
-    bg.line.fill.background()
-    bg.shadow.inherit = False
-    # 斜向半透明色块（模板封面的对角光带，允许出血）
-    for (x, y, w, h, rot, a) in [(8.2, -2.5, 3.2, 14, 24, 88),
-                                 (10.6, -2.5, 1.6, 14, 24, 92),
-                                 (6.6, -2.5, 0.9, 14, 24, 94)]:
-        s = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y),
-                                   Inches(w), Inches(h))
-        s.rotation = rot
-        s.fill.solid()
-        s.fill.fore_color.rgb = C(WHITE)
-        s.line.fill.background()
-        s.shadow.inherit = False
-        alpha(s, a)
-    return bg
+def gradient(slide, profile='vivo-house'):
+    primary, bright, _, _ = PROFILE_PALETTES.get(profile, PROFILE_PALETTES['vivo-house'])
+    bg = rect(slide, 0, 0, SW, SH, primary)
+    try:
+        bg.fill.gradient(); stops = bg.fill.gradient_stops
+        stops[0].color.rgb = C(bright); stops[1].color.rgb = C(primary)
+    except Exception:
+        pass
+    for x, w, transparency in ((10.1, 1.35, 90), (11.25, .8, 93), (9.35, .5, 95)):
+        band = rect(slide, x, -2.5, w, 14, WHITE, transparency=transparency); band.rotation = 24
 
 
-def logo(slide, top=0.42, height=0.42):
-    if os.path.exists(LOGO):
-        slide.shapes.add_picture(LOGO, Inches(SW - 1.9), Inches(top), height=Inches(height))
+def add_logo(slide):
+    if LOGO.exists(): slide.shapes.add_picture(str(LOGO), Inches(11.65), Inches(.42), height=Inches(.42))
 
 
-def page_chrome(slide, no, total):
-    textbox(slide, 0.55, 7.05, 6, 0.3, '内部汇报资料 · 请勿外传', 9, LGRAY)
-    textbox(slide, SW - 1.4, 7.05, 0.85, 0.3, str(no), 9, LGRAY, align=PP_ALIGN.RIGHT)
+def chrome(slide, page, total, source=None):
+    textbox(slide, .58, 7.04, 7.5, .25, source or '内部汇报资料 · 请勿外传', 8.5, MUTED)
+    textbox(slide, 12.0, 7.04, .72, .25, str(page['no']), 8.5, MUTED, align=PP_ALIGN.RIGHT)
 
 
-def render_cover(prs, deck, cover_pg=None):
-    """封面页。cover_pg 为显式 `## P1｜封面` 页时，其 bullets 作为封面附加行渲染。"""
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    gradient_bg(s)
-    logo(s)
-    textbox(s, 0.9, 2.35, 10.5, 2.2, deck['title'] or '未命名', 40, WHITE, bold=True, lh=1.15)
-    if deck['sub']:
-        textbox(s, 0.92, 4.55, 10.5, 0.8, deck['sub'], 20, LIGHT)
-    if deck['meta']:
-        textbox(s, 0.92, 6.55, 8, 0.4, deck['meta'], 9, META_C)
-    # 显式封面页的要点（提报方/日期/密级等）渲染为封面下方小字
-    if cover_pg:
-        y = 5.6
-        for lv, txt in cover_pg['bullets']:
-            textbox(s, 0.92, y, 10.5, 0.35, txt, 9, META_C)
-            y += 0.38
-    return s
+def cover(prs, deck, pg=None):
+    slide = prs.slides.add_slide(prs.slide_layouts[6]); gradient(slide, 'vivo-house'); add_logo(slide)
+    cover_title = deck['title'] or '未命名 deck'
+    title_h = 1.65 if est_lines(cover_title, 40, 8.45) <= 2 else 2.1
+    title_size = fit_text_size(cover_title, 8.45, title_h, 40, 30, 1.15)
+    textbox(slide, .9, 2.05, 8.45, title_h, cover_title, title_size, WHITE, True, margin=0)
+    if deck['sub']: textbox(slide, .92, 4.05 if title_h <= 1.65 else 4.35, 7.25, .6, deck['sub'], 20, LIGHT, margin=0)
+    if deck['meta']: textbox(slide, .92, 6.48, 10, .35, deck['meta'], 9, WHITE, margin=0)
+    return slide
 
 
-def render_end(s, title='Thank you'):
-    gradient_bg(s)
-    logo(s)
-    textbox(s, 0.9, 3.0, 10, 1.2, title, 40, WHITE, bold=True)
-    textbox(s, 0.92, 4.1, 10, 0.6, '谢谢', 20, LIGHT)
+def end(slide, profile='vivo-house'):
+    gradient(slide, 'vivo-house'); add_logo(slide)
+    textbox(slide, .9, 2.85, 10, .8, 'THANK YOU', 44, WHITE, True, margin=0)
+    textbox(slide, .92, 3.85, 10, .5, '谢谢', 20, LIGHT, margin=0)
 
 
-def render_toc(s, page):
-    textbox(s, 0.7, 0.55, 4, 0.6, '目录', 20, INK, bold=True)
-    y = 1.7
-    for (lv, txt) in page['bullets']:
-        parts = txt.split(' ', 1)
-        num, label = (parts[0], parts[1]) if len(parts) == 2 and parts[0].isdigit() else ('', txt)
-        runs = []
-        if num:
-            runs.append((num, BLUE, True))
-        runs.append(('  ' + label if num else label, INK, False))
-        textbox(s, 1.0, y, 10.5, 0.5, runs, 16 if num else 15, INK)
-        bar(s, 1.0, y + 0.52, 4.6, 0.035, BLUE)
-        y += 0.85
+def title(slide, page):
+    textbox(slide, .62, .48, 8.65, .58, page['title'], 22, NAVY, True, margin=0)
+    if page['sub']: textbox(slide, 9.45, .54, 3.25, .32, page['sub'], 11, GRAY, True, align=PP_ALIGN.RIGHT, margin=0)
 
 
-def render_part(s, page):
-    m = re.search(r'(\d+)', page['title'])
-    num = m.group(1) if m else ''
-    title_txt = re.sub(r'^Part\s*\d*\s*', '', page['title'], flags=re.I).strip() or page['title']
-    textbox(s, 0.9, 2.5, 3, 0.7, [('Part ', INK, True), (num, BLUE, True)], 28, INK)
-    bar(s, 0.92, 3.35, 2.2, 0.04, BLUE)
-    textbox(s, 0.9, 3.6, 11, 0.9, title_txt, 28, BLUE, bold=True)
-    if page['sub']:
-        textbox(s, 0.92, 4.5, 11, 0.5, page['sub'], 12, GRAY)
+def bullets(slide, page, x=.7, y=1.45, w=11.9, h=5.1, size=15, with_title=True):
+    if with_title:
+        title(slide, page)
+    content = '\n'.join(('• ' if level == 0 else '   – ') + text for level, text in page['bullets'])
+    size = fit_text_size(content, w - .08, h, size, 12, 1.18)
+    box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    tf = box.text_frame; tf.clear(); tf.word_wrap = True; tf.margin_left = Inches(.04); tf.margin_right = Inches(.04)
+    for i, (level, text) in enumerate(page['bullets']):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph(); p.line_spacing = 1.18; p.space_after = Pt(9 if level == 0 else 4)
+        r = p.add_run(); r.text = ('• ' if level == 0 else '   – ') + text; r.font.size = Pt(size - level)
+        r.font.color.rgb = C(INK if level == 0 else GRAY); r.font.bold = level == 0; set_font(r)
+    warn(page, '正文', sum(est_lines(t, size-level, w) * (size-level) * 1.18 / 72 for level, t in page['bullets']), h)
 
 
-def header(s, page):
-    t = page['title']
-    w = min(cjk_w(t, 14) + 0.55, 8.5)
-    bar(s, 0.55, 0.42, w, 0.44, BLUE)
-    textbox(s, 0.78, 0.455, w - 0.4, 0.4, t, 14, WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
-    if page['sub']:
-        textbox(s, 0.6 + w + 0.25, 0.47, 12 - w, 0.4, page['sub'], 12, INK, bold=True)
+def toc(slide, page):
+    textbox(slide, .7, .62, 4, .6, '目录', 28, NAVY, True, margin=0)
+    y = 1.55
+    for i, (_, text) in enumerate(page['bullets'], 1):
+        parts = text.split(maxsplit=1); num = parts[0] if parts and parts[0].isdigit() else f'{i:02d}'
+        label = parts[1] if len(parts) > 1 else text
+        textbox(slide, .9, y, .65, .42, num.zfill(2), 23, BLUE, True, margin=0)
+        textbox(slide, 1.75, y, 9.8, .42, label, 21, INK, margin=0)
+        rect(slide, 1.75, y + .55, 9.7, .018, BLUE)
+        y += .88
 
 
-def bullet_paras(tf, bullets, l1=12.0, start_first=True):
-    first = start_first
-    for lv, txt in bullets:
-        p = tf.paragraphs[0] if first else tf.add_paragraph()
-        first = False
-        p.line_spacing = 1.25
-        if lv == 0:
-            if '：' in txt:
-                lead, rest = txt.split('：', 1)
-                for ttxt, col, bd in [('• ', BLUE, True), (lead + '：', NAVY, True), (rest, INK, False)]:
-                    r = p.add_run()
-                    r.text = ttxt
-                    r.font.size = Pt(l1)
-                    r.font.bold = bd
-                    r.font.color.rgb = C(col)
-                    set_font(r)
-            else:
-                r = p.add_run()
-                r.text = '• ' + txt
-                r.font.size = Pt(l1)
-                r.font.bold = True
-                r.font.color.rgb = C(INK)
-                set_font(r)
-            p.space_after = Pt(8)
-        else:
-            r = p.add_run()
-            r.text = '   – ' + txt
-            r.font.size = Pt(l1 - 1)
-            r.font.color.rgb = C(GRAY)
-            set_font(r)
-            p.space_after = Pt(4)
+def part(slide, page):
+    raw = page['title']; match = re.search(r'(\d+)', raw); num = match.group(1) if match else ''
+    label = re.sub(r'^Part\s*\d*\s*', '', raw, flags=re.I).strip()
+    textbox(slide, .9, 1.2, 2.4, .5, f'Part {num}', 25, INK, True, margin=0)
+    textbox(slide, .9, 2.0, 3.6, 1.0, num or '—', 80, BLUE, True, margin=0)
+    textbox(slide, 4.15, 2.42, 8.3, .9, label, 40, BLUE, True, margin=0)
+    if page['sub']: textbox(slide, 4.18, 3.48, 8, .45, page['sub'], 18, GRAY, margin=0)
 
 
-def render_bullets(s, page):
-    header(s, page)
-    box_l, box_t, box_w, box_h = 0.62, 1.35, 12.1, 5.4
-    _warn_overflow(page, 'bullets', est_bullets_height(page['bullets'], 12, box_w), box_h)
-    tb = s.shapes.add_textbox(Inches(box_l), Inches(box_t), Inches(box_w), Inches(box_h))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    bullet_paras(tf, page['bullets'])
+def cards(slide, page, ncol=3):
+    title(slide, page); data = page['cards'] or [{'title': '', 'items': [t for _, t in page['bullets']]}]
+    ncol = max(1, min(ncol, 4, len(data))); rows = (len(data) + ncol - 1) // ncol
+    gap, left, top = .28, .65, 1.42; cw = (SW - 1.3 - gap * (ncol - 1)) / ncol
+    rh = (5.15 - gap * (rows - 1)) / rows
+    for i, card in enumerate(data):
+        x = left + (i % ncol) * (cw + gap); y = top + (i // ncol) * (rh + gap)
+        rect(slide, x, y, cw, rh, SURFACE, radius=True)
+        textbox(slide, x + .22, y + .18, cw - .44, .42, card['title'] or '要点', 15, BLUE, True, margin=0)
+        body = textbox(slide, x + .22, y + .75, cw - .44, rh - .95, '\n'.join('• ' + t for t in card['items']), 11.5, INK, margin=0)
+        body.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+        warn(page, f'卡片{i + 1}', sum(est_lines(t, 11.5, cw - .44) * 11.5 * 1.15 / 72 for t in card['items']), rh - .95)
 
 
-def render_cards(s, page, ncol=None):
-    header(s, page)
-    cards = page['cards'] or [{'title': '', 'items': [t for _, t in page['bullets']]}]
-    ncol = ncol or len(cards)
-    ncol = max(1, min(ncol, len(cards)))
-    rows = (len(cards) + ncol - 1) // ncol
-    gap, margin = 0.25, 0.55
-    top = 1.45
-    avail_h = 5.1
-    row_h = (avail_h - gap * (rows - 1)) / rows
-    cw = (SW - margin * 2 - gap * (ncol - 1)) / ncol
-    for i, cd in enumerate(cards):
-        r, c = i // ncol, i % ncol
-        x = margin + c * (cw + gap)
-        y = top + r * (row_h + gap)
-        bar(s, x, y, cw, row_h, CARD)
-        textbox(s, x + 0.22, y + 0.2, cw - 0.44, 0.5, cd['title'], 13, BLUE, bold=True)
-        bar(s, x + 0.22, y + 0.67, 0.5, 0.03, BLUE)
-        tb = s.shapes.add_textbox(Inches(x + 0.22), Inches(y + 0.85),
-                                  Inches(cw - 0.44), Inches(row_h - 1.0))
-        tf = tb.text_frame
-        tf.word_wrap = True
-        first = True
-        for it in cd['items']:
-            p = tf.paragraphs[0] if first else tf.add_paragraph()
-            first = False
-            p.line_spacing = 1.2
-            p.space_after = Pt(5)
-            r = p.add_run()
-            r.text = '• ' + it
-            r.font.size = Pt(10.5)
-            r.font.color.rgb = C(INK)
-            set_font(r)
-        _warn_overflow(page, f'卡片{i + 1}',
-                       est_bullets_height([(0, it) for it in cd['items']], 10.5, cw - 0.44),
-                       row_h - 1.0)
+def stats(slide, page):
+    title(slide, page); data = page['stats'] or [(c['title'], c['items'][0] if c['items'] else '') for c in page['cards']]
+    if not data: data = [('关键数据', t) for _, t in page['bullets']]
+    n = max(1, min(4, len(data))); gap = .3; cw = (12.0 - gap * (n - 1)) / n
+    for i, (value, label) in enumerate(data[:4]):
+        card_h = 3.0 if len(data) <= 2 else 3.75
+        y = 1.8 if len(data) <= 2 else 1.65
+        x = .65 + i * (cw + gap); rect(slide, x, y, cw, card_h, BLUE if i == 0 else LIGHT, radius=True)
+        color = WHITE if i == 0 else NAVY
+        value_size = fit_text_size(value, cw - .44, .95, 40, 24, 1.05)
+        textbox(slide, x + .22, y + .52, cw - .44, .95, value, value_size, color, True, margin=0)
+        textbox(slide, x + .22, y + 1.72, cw - .44, card_h - 1.95, label, 14, color, margin=0)
+
+
+def framework(slide, page):
+    title(slide, page); data = page['cards'][:4]
+    if not data: data = [{'title': 'RTB', 'items': [t for _, t in page['bullets']]}]
+    n = min(4, len(data)); gap = .25; cw = (12 - gap * (n - 1)) / n
+    rh = 4.6
+    for i, card in enumerate(data):
+        x = .65 + i * (cw + gap)
+        rect(slide, x, 1.55, cw, rh, LIGHT, radius=True)
+        textbox(slide, x + .2, 1.9, cw - .4, .5, card['title'].upper(), 16, BLUE, True, margin=0)
+        body = textbox(slide, x + .2, 2.55, cw - .4, rh - 1.2, '\n'.join('• ' + t for t in card['items']), 12, INK, margin=0)
+        body.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+
+
+def table(slide, page):
+    title(slide, page); rows = page['table'] or [['项目', '内容'], *[[t, '待补'] for _, t in page['bullets']]]
+    cols = max(len(r) for r in rows); rows = [r + [''] * (cols - len(r)) for r in rows]; rows = rows[:10]; cols = min(cols, 6)
+    x, y, w, h = .58, 1.45, 12.18, min(5.25, .46 * len(rows) + .2)
+    shape = slide.shapes.add_table(len(rows), cols, Inches(x), Inches(y), Inches(w), Inches(h)); tbl = shape.table
+    widths = [w / cols] * cols
+    if cols >= 4: widths[0] = w * .16; widths[1] = w * .22; rem = w - widths[0] - widths[1]; widths[2:] = [rem / (cols - 2)] * (cols - 2)
+    for i, width in enumerate(widths): tbl.columns[i].width = Inches(width)
+    for ri, row in enumerate(rows):
+        tbl.rows[ri].height = Inches(.46 if ri == 0 else .53)
+        for ci in range(cols):
+            cell = tbl.cell(ri, ci); cell.text = row[ci]; cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+            cell.fill.solid(); cell.fill.fore_color.rgb = C(BLUE if ri == 0 else (TABLE_ALT if ri % 2 == 0 else WHITE))
+            p = cell.text_frame.paragraphs[0]; p.alignment = PP_ALIGN.LEFT
+            r = p.runs[0] if p.runs else p.add_run()
+            r.font.size = Pt(10.5); r.font.bold = ri == 0 or ci == 0; r.font.color.rgb = C(WHITE if ri == 0 else (NAVY if ci == 0 else INK)); set_font(r)
+
+
+def comparison(slide, page):
+    title(slide, page); data = page['cards'][:2]
+    if len(data) < 2: return cards(slide, page, 2)
+    rh = 4.6
+    for i, card in enumerate(data):
+        x = .7 + i * 6.15; rect(slide, x, 1.55, 5.75, rh, LIGHT if i else SURFACE, radius=True)
+        textbox(slide, x + .3, 1.95, 5.15, .62, card['title'], 19, BLUE if i else NAVY, True, margin=0)
+        body = textbox(slide, x + .3, 2.75, 5.1, rh - 1.35, '\n'.join('• ' + t for t in card['items']), 14, INK, margin=0)
+        body.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+
+
+def timeline(slide, page):
+    title(slide, page); rows = page['table'] or [['阶段', '时间', '关键动作'], *[[t, '', '待补'] for _, t in page['bullets']]]
+    rows = rows[:7]; y = 1.65
+    for i, row in enumerate(rows[1:]):
+        label = row[0] if row else ''; time = row[1] if len(row) > 1 else ''; action = ' · '.join(row[2:]) if len(row) > 2 else ''
+        rect(slide, 1.2, y + .48, 10.8, .045, 'AAB9D5'); rect(slide, 1.2, y, 1.45, .42, BLUE, radius=True)
+        textbox(slide, 1.35, y + .07, 1.15, .26, label, 11, WHITE, True, margin=0)
+        rect(slide, 2.95, y + .39, .2, .2, RED if '截止' in time or 'deadline' in time.lower() else BLUE, radius=True)
+        textbox(slide, 3.35, y - .02, 1.65, .3, time, 11, NAVY, True, margin=0)
+        textbox(slide, 5.05, y - .02, 6.7, .38, action, 12, INK, margin=0)
+        y += .72
+
+
+def collage(slide, page):
+    title(slide, page); imgs = page['img'][:6]
+    if not imgs: return split(slide, page, 'left')
+    if not any(Path(path).exists() for path, _ in imgs):
+        return bullets(slide, page, y=1.55, h=4.85, size=13, with_title=False)
+    n = len(imgs); cols = 3 if n > 2 else n; gap = .14; cw = (8.0 - gap * (cols - 1)) / cols; rh = 4.7 if n <= cols else 2.25
+    for i, (path, cap) in enumerate(imgs):
+        x = .65 + (i % cols) * (cw + gap); y = 1.45 + (i // cols) * (rh + gap)
+        if Path(path).exists(): add_cover_crop(slide, path, x, y, cw, rh)
+        else: rect(slide, x, y, cw, rh, LIGHT, line=BLUE); textbox(slide, x, y + rh / 2 - .2, cw, .3, 'MISSING IMAGE', 10, BLUE, True, align=PP_ALIGN.CENTER)
+    textbox(slide, 9.05, 1.65, 3.5, 4.4, '\n'.join('• ' + t for _, t in page['bullets']), 14, INK, margin=0)
+
+
+def chart(slide, page):
+    title(slide, page)
+    rows = page['table']
+    if len(rows) < 2 or len(rows[0]) < 2:
+        return bullets(slide, page, y=1.55, h=4.85, size=13, with_title=False)
+    data = ChartData()
+    data.categories = [row[0] for row in rows[1:] if row]
+    for col in range(1, len(rows[0])):
+        name = rows[0][col] or f'系列 {col}'
+        values = []
+        for row in rows[1:]:
+            try: values.append(float(row[col]))
+            except (ValueError, IndexError): values.append(0)
+        data.add_series(name, values)
+    kind = {'bar': XL_CHART_TYPE.COLUMN_CLUSTERED, 'line': XL_CHART_TYPE.LINE_MARKERS,
+            'doughnut': XL_CHART_TYPE.DOUGHNUT}.get(page.get('chart'), XL_CHART_TYPE.COLUMN_CLUSTERED)
+    graphic = slide.shapes.add_chart(kind, Inches(.85), Inches(1.55), Inches(11.7), Inches(4.75), data)
+    ch = graphic.chart
+    ch.has_legend = len(data) > 1 or page.get('chart') == 'doughnut'
+    if ch.has_legend:
+        ch.legend.position = XL_LEGEND_POSITION.BOTTOM
+        ch.legend.include_in_layout = False
+    ch.has_title = False
+    try:
+        ch.value_axis.has_major_gridlines = False
+        ch.category_axis.tick_labels.font.name = FONT
+        ch.value_axis.tick_labels.font.name = FONT
+        ch.category_axis.tick_labels.font.size = Pt(10)
+        ch.value_axis.tick_labels.font.size = Pt(10)
+    except (AttributeError, ValueError):
+        pass
+    for i, series in enumerate(ch.series):
+        series.format.fill.solid(); series.format.fill.fore_color.rgb = C((BLUE, BRIGHT, NAVY, GOLD)[i % 4])
 
 
 def add_cover_crop(slide, path, x, y, w, h):
-    """图片 cover-crop：铺满目标框并裁切溢出（而非留白）。"""
-    from PIL import Image as PILImage
-    iw, ih = PILImage.open(path).size
-    src_ar = iw / ih
-    tgt_ar = w / h
-    pic = slide.shapes.add_picture(path, Inches(x), Inches(y),
-                                   width=Inches(w), height=Inches(h))
-    if src_ar > tgt_ar:
-        keep = tgt_ar / src_ar
-        c = (1 - keep) / 2
-        pic.crop_left = c
-        pic.crop_right = c
+    if Image is None: return slide.shapes.add_picture(path, Inches(x), Inches(y), width=Inches(w), height=Inches(h))
+    iw, ih = Image.open(path).size; src, dst = iw / ih, w / h
+    pic = slide.shapes.add_picture(path, Inches(x), Inches(y), width=Inches(w), height=Inches(h))
+    if src > dst:
+        crop = (1 - dst / src) / 2; pic.crop_left = crop; pic.crop_right = crop
     else:
-        keep = src_ar / tgt_ar
-        c = (1 - keep) / 2
-        pic.crop_top = c
-        pic.crop_bottom = c
+        crop = (1 - src / dst) / 2; pic.crop_top = crop; pic.crop_bottom = crop
     return pic
 
 
-def add_missing_image_slot(slide, path, cap, x, y, w, h):
-    """显式 @img 缺失时保留 split 图槽，避免误退化为全宽文字。"""
-    slot = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y),
-                                  Inches(w), Inches(h))
-    slot.fill.solid()
-    slot.fill.fore_color.rgb = C(CARD)
-    slot.line.color.rgb = C(BLUE)
-    slot.line.width = Pt(1.25)
-    slot.shadow.inherit = False
-    textbox(slide, x + 0.35, y + h / 2 - 0.42, w - 0.7, 0.32,
-            'MISSING IMAGE', 13, BLUE, bold=True, align=PP_ALIGN.CENTER,
-            anchor=MSO_ANCHOR.MIDDLE)
-    missing_name = os.path.basename(path) if path else 'empty @img path'
-    textbox(slide, x + 0.35, y + h / 2 + 0.02, w - 0.7, 0.36,
-            missing_name, 8.5, GRAY, align=PP_ALIGN.CENTER,
-            anchor=MSO_ANCHOR.MIDDLE)
-    if cap:
-        textbox(slide, x, y + h + 0.08, w, 0.3, cap, 9, LGRAY,
-                align=PP_ALIGN.CENTER)
-    return slot
+def add_contain(slide, path, x, y, w, h, background=None):
+    """Fit the full product/person into a frame; case-study evidence must not crop the hero."""
+    if background:
+        rect(slide, x, y, w, h, background)
+    if Image is None:
+        return slide.shapes.add_picture(path, Inches(x), Inches(y), width=Inches(w), height=Inches(h))
+    iw, ih = Image.open(path).size; scale = min(w / iw, h / ih)
+    nw, nh = iw * scale, ih * scale
+    return slide.shapes.add_picture(path, Inches(x + (w - nw) / 2), Inches(y + (h - nh) / 2),
+                                    width=Inches(nw), height=Inches(nh))
 
 
-def render_split(s, page, side='left'):
-    header(s, page)
-    right = (side == 'right')
-    img_w = 5.4
-    img_h = 5.0
+def split(slide, page, side='left'):
+    title(slide, page); img_w, img_h = 5.25, 4.85; ix = .65 if side != 'right' else 7.43
     if page['img']:
-        x = SW - 0.6 - img_w if right else 0.6
-        if os.path.exists(page['img']):
-            add_cover_crop(s, page['img'], x, 1.5, img_w, img_h)
-            if page['imgcap']:
-                textbox(s, x, 1.5 + img_h + 0.08, img_w, 0.3, page['imgcap'], 9, LGRAY,
-                        align=PP_ALIGN.CENTER)
-        else:
-            add_missing_image_slot(s, page['img'], page['imgcap'], x, 1.5, img_w, img_h)
-        bx, bw = (0.6, x - 1.0) if right else (0.6 + img_w + 0.4, SW - 1.2 - img_w)
-    else:
-        bx, bw = 0.6, 12.1
-    _warn_overflow(page, 'split bullets', est_bullets_height(page['bullets'], 11.5, bw), 5.4)
-    tb = s.shapes.add_textbox(Inches(bx), Inches(1.35), Inches(bw), Inches(5.4))
-    tf = tb.text_frame
-    tf.word_wrap = True
-    bullet_paras(tf, page['bullets'], l1=11.5)
+        path, cap = page['img'][0]
+        if Path(path).exists():
+            source_ratio = img_w / img_h
+            if Image is not None:
+                with Image.open(path) as image:
+                    source_ratio = image.size[0] / image.size[1]
+            frame_w, frame_h = img_w, img_h
+            if source_ratio > img_w / img_h:
+                frame_h = img_w / source_ratio
+            elif source_ratio < img_w / img_h:
+                frame_w = img_h * source_ratio
+            frame_x, frame_y = ix + (img_w - frame_w) / 2, 1.5 + (img_h - frame_h) / 2
+            add_contain(slide, path, frame_x, frame_y, frame_w, frame_h, WHITE)
+        else: rect(slide, ix, 1.5, img_w, img_h, LIGHT, line=BLUE); textbox(slide, ix, 3.7, img_w, .3, 'MISSING IMAGE', 11, BLUE, True, align=PP_ALIGN.CENTER)
+        if cap: textbox(slide, ix, 6.45, img_w, .25, cap, 8.5, MUTED, align=PP_ALIGN.CENTER, margin=0)
+    bx, bw = (.65, 6.05) if side == 'right' else (6.45, 6.1)
+    bullets(slide, page, bx, 1.55, bw, 4.85, 13, with_title=False)
 
 
-def render_table(s, page):
-    header(s, page)
-    rows = page['table']
-    if not rows:
-        # 空表回退 bullets
-        render_bullets(s, page)
-        return
-    nc = max(len(r) for r in rows)
-    # 补齐不齐的行
-    rows = [r + [''] * (nc - len(r)) for r in rows]
-    nr = len(rows)
-    gt = s.shapes.add_table(nr, nc, Inches(0.55), Inches(1.4), Inches(12.2), Inches(0.4 * nr))
-    tbl = gt.table
-    for i in range(nc):
-        tbl.columns[i].width = Inches(12.2 / nc)
-    for ri in range(nr):
-        tbl.rows[ri].height = Inches(0.45 if ri == 0 else 0.55)
-    for ri, row in enumerate(rows):
-        for ci in range(nc):
-            cell = tbl.cell(ri, ci)
-            cell.text = row[ci]
-            p = cell.text_frame.paragraphs[0]
-            r = p.runs[0] if p.runs else p.add_run()
-            r.font.size = Pt(10.5)
-            set_font(r)
-            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-            if ri == 0:
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = C(BLUE)
-                r.font.color.rgb = C(WHITE)
-                r.font.bold = True
-            else:
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = C(TABLE_ALT) if ri % 2 == 0 else C(WHITE)
-                r.font.color.rgb = C(INK)
-                if ci == 0:
-                    r.font.bold = True
-                    r.font.color.rgb = C(NAVY)
-    # 表格高度估算（表头0.45 + 数据行0.55）
-    est_h = 0.45 + (nr - 1) * 0.55
-    _warn_overflow(page, 'table', est_h, 5.4)
+def expand_overflow_pages(pages):
+    """Split dense bullet pages only after keeping the readable minimum size."""
+    expanded = []
+    for page in pages:
+        layout = page.get('layout') or 'bullets'
+        if layout not in ('bullets', 'purpose') or len(page.get('bullets', [])) < 2:
+            expanded.append(page)
+            continue
+        chunks, current, height = [], [], 0.0
+        for level, text in page['bullets']:
+            item_height = est_lines(text, 15 - level, 11.75) * (15 - level) * 1.18 / 72 + (0.13 if level == 0 else 0.06)
+            if current and height + item_height > 4.9:
+                chunks.append(current); current = []; height = 0.0
+            current.append((level, text)); height += item_height
+        if current: chunks.append(current)
+        if len(chunks) == 1:
+            expanded.append(page)
+            continue
+        for index, chunk in enumerate(chunks, 1):
+            split_page = dict(page)
+            split_page['bullets'] = chunk
+            split_page['title'] = f"{page['title']}（续 {index}/{len(chunks)}）" if index > 1 else page['title']
+            split_page['notes'] = page.get('notes', []) if index == 1 else []
+            expanded.append(split_page)
+    return expanded
 
 
 def build(deck, out):
-    prs = Presentation()
-    prs.slide_width = Inches(SW)
-    prs.slide_height = Inches(SH)
+    global OVERFLOW_WARNINGS; OVERFLOW_WARNINGS = []
+    if HOUSE_TEMPLATE.exists():
+        prs, end_slide = prepare_house_template(deck)
+    else:
+        prs = Presentation(); prs.slide_width = Inches(SW); prs.slide_height = Inches(SH); end_slide = None
     blank = prs.slide_layouts[6]
-
-    # 封面去重：显式 P1｜封面 视为封面页，不再额外生成重复封面
-    pages = list(deck['pages'])
-    cover_pg = None
-    if pages and pages[0]['title'].strip() == '封面':
-        cover_pg = pages.pop(0)
-    render_cover(prs, deck, cover_pg)
-
-    total = len(pages) + 1  # 含封面
-    for pg in pages:
-        lay = pg['layout'] or ('toc' if pg['title'] == '目录' else
-                               ('end' if 'Thank' in pg['title'] or '谢谢' in pg['title'] else 'bullets'))
-        s = prs.slides.add_slide(blank)
-        if lay == 'end':
-            render_end(s, pg['title'] if pg['title'] not in ('Thank you', '谢谢') else 'Thank you')
-        elif lay == 'toc':
-            render_toc(s, pg)
-        elif lay == 'part':
-            render_part(s, pg)
-        elif lay == 'cards':
-            ncol = int(pg['layout_arg']) if pg['layout_arg'] and pg['layout_arg'].isdigit() else None
-            render_cards(s, pg, ncol)
-        elif lay == 'split':
-            side = pg['layout_arg'] if pg['layout_arg'] in ('left', 'right') else 'left'
-            render_split(s, pg, side)
-        elif lay == 'table':
-            render_table(s, pg)
-        else:
-            render_bullets(s, pg)
-        if lay not in ('end',):
-            page_chrome(s, pg['no'], total)
-        if pg['notes']:
-            s.notes_slide.notes_text_frame.text = ' '.join(pg['notes'])
-    prs.save(out)
-    return len(prs.slides._sldIdLst)
+    pages = list(deck['pages']); cover_pg = pages.pop(0) if pages and pages[0]['title'] == '封面' else None
+    if end_slide is not None and pages and (pages[-1].get('layout') == 'end' or '谢谢' in pages[-1].get('title', '')):
+        pages.pop()
+    pages = expand_overflow_pages(pages)
+    for number, page in enumerate(pages, 2):
+        page['no'] = number
+    if end_slide is None:
+        cover(prs, deck, cover_pg)
+    else:
+        # The source file already contains the native cover and end pages.
+        # Remove its instructional middle slide before adding generated content.
+        if len(prs.slides) > 2:
+            middle_id = prs.slides._sldIdLst[1]
+            prs.slides._sldIdLst.remove(middle_id)
+    total = len(pages) + 1
+    for page in pages:
+        layout = page['layout'] or ('toc' if page['title'] == '目录' else ('end' if 'thank' in page['title'].lower() or '谢谢' in page['title'] else 'bullets'))
+        slide = prs.slides.add_slide(blank)
+        if layout == 'end':
+            if end_slide is None: end(slide, page.get('profile') or deck['profile'])
+        elif layout == 'toc': toc(slide, page)
+        elif layout == 'part': part(slide, page)
+        elif layout == 'stats': stats(slide, page)
+        elif layout in ('framework', 'funnel'): framework(slide, page)
+        elif layout == 'cards': cards(slide, page, int(page['arg']) if page['arg'].isdigit() else 3)
+        elif layout == 'comparison': comparison(slide, page)
+        elif layout == 'matrix': table(slide, page)
+        elif layout == 'timeline': timeline(slide, page)
+        elif layout in ('budget', 'table'): table(slide, page)
+        elif layout in ('collage', 'case-study'): collage(slide, page)
+        elif layout == 'chart' or page.get('chart'): chart(slide, page)
+        elif layout == 'split': split(slide, page, page['arg'] if page['arg'] in ('left', 'right') else 'left')
+        else: bullets(slide, page)
+        if layout != 'end': chrome(slide, page, total, page.get('source'))
+        if page['notes']: slide.notes_slide.notes_text_frame.text = '\n'.join(page['notes'])
+    if end_slide is not None:
+        move_slide_to_end(prs, end_slide)
+    prs.save(out); return len(prs.slides)
 
 
 def main():
-    if len(sys.argv) != 3:
-        sys.exit(__doc__)
-    deck = parse_md(sys.argv[1])
-    nos = [p['no'] for p in deck['pages']]
-    if nos != list(range(1, len(nos) + 1)):
-        print(f'[警告] 页码不连续: {nos}')
+    if len(sys.argv) != 3: raise SystemExit('用法: python3 md2pptx_vivo.py 输入.md 输出.pptx')
+    deck = parse_md(sys.argv[1]); nums = [p['no'] for p in deck['pages']]
+    if nums != list(range(1, len(nums) + 1)): print(f'[警告] 页码不连续: {nums}')
     for p in deck['pages']:
-        l1 = sum(1 for lv, _ in p['bullets'] if lv == 0)
-        if l1 > 6 and not p['layout']:
-            print(f'[警告] P{p["no"]} 一级要点 {l1} 条，超过6条')
-    n = build(deck, sys.argv[2])
-    print(f'[完成] {sys.argv[2]} 共 {n} 页（含封面）')
-    if OVERFLOW_WARNINGS:
-        print('[溢出] 渲染期文本高度估算超框：')
-        for w in OVERFLOW_WARNINGS:
-            print('  - ' + w)
-    print(f'[字体] 回退链解析为: {FONT}')
+        if sum(1 for level, _ in p['bullets'] if level == 0) > 6: print(f'[警告] P{p["no"]} 一级要点超过6条')
+    count = build(deck, sys.argv[2]); print(f'[完成] {sys.argv[2]} 共 {count} 页'); print(f'[字体] {FONT}')
+    for item in OVERFLOW_WARNINGS: print('[溢出] ' + item)
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()

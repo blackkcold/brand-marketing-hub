@@ -7,3 +7,9 @@ __pycache__/
 
 # 原始 VI 规范资料不进入仓库；仓库只保留规范清单与可执行模板。
 assets/vivo-design-spec/
+
+# 生成产物（PPTX/PDF/PNG 渲染输出）不进入仓库。
+output/
+
+# 本地备份文件。
+.SKILL.md.bak
