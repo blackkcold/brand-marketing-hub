@@ -1,9 +1,14 @@
-# Visual regression smoke test
+# v4.1 Test Suite
 
-Run from the skill root or any directory:
+Run from the repository root:
 
 ```bash
-python3 /Users/11169285/.vbuddy/skills/brand-marketing-hub/assets/tests/test_render_smoke.py
+python assets/tests/test_v4_contracts.py
+python assets/tests/test_source_to_deck.py
+python assets/tests/test_archetypes.py
+python assets/tests/test_render_smoke.py
 ```
 
-The script uses a temporary directory, generates a synthetic image, renders `assets/fixtures/visual-regression.md` through `assets/md2pptx_vivo.py`, and validates structural expectations. It does not overwrite `assets/samples/` or any existing PPTX.
+The first two tests cover the current v4.1 architecture: universal source ingestion, coverage, template/runtime contracts and delivery gates. The latter two are retained only as legacy Markdown renderer regression tests.
+
+GitHub CI additionally generates a PPTX through the PptxGenJS fallback, validates it, renders it through LibreOffice, and requires a real PDF/PNG montage.
