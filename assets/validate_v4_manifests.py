@@ -12,14 +12,14 @@ from jsonschema import Draft202012Validator
 
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMAS={
- "sources":ROOT.parent/"schemas/source.schema.json",
- "content":ROOT.parent/"schemas/content-unit.schema.json",
- "evidence":ROOT.parent/"schemas/evidence.schema.json",
- "assets":ROOT.parent/"schemas/asset.schema.json",
- "coverage":ROOT.parent/"schemas/coverage.schema.json",
- "deck":ROOT.parent/"schemas/deck.schema.json",
- "template":ROOT.parent/"schemas/template.schema.json",
- "qa":ROOT.parent/"schemas/qa.schema.json",
+ "sources":ROOT/"schemas/source.schema.json",
+ "content":ROOT/"schemas/content-unit.schema.json",
+ "evidence":ROOT/"schemas/evidence.schema.json",
+ "assets":ROOT/"schemas/asset.schema.json",
+ "coverage":ROOT/"schemas/coverage.schema.json",
+ "deck":ROOT/"schemas/deck.schema.json",
+ "template":ROOT/"schemas/template.schema.json",
+ "qa":ROOT/"schemas/qa.schema.json",
 }
 
 def load(path:Path):
