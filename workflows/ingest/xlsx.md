@@ -1,0 +1,2 @@
+# XLSX / CSV Ingestion
+Inspect workbook structure before summarizing. Keep sheet name and exact cell range. Record both formulas and evaluated/cached values when available; never replace formulas with guessed results. Preserve units, date periods, percentage/decimal semantics and totals. Validate arithmetic where it affects the deck. Prefer native charts only after verifying the underlying data range and metric definition.
