@@ -46,7 +46,31 @@ def main():
         assert p.returncode==1, "coverage must fail because most source units are unmapped"
         coverage=json.loads(cov.read_text(encoding="utf-8"))
         assert coverage["summary"]["critical_missing"]>0
-    print("PASS v4.1 source ingestion + exhaustive coverage gate")
+
+        # A fully mapped deck must pass coverage generation and cross-manifest validation.
+        all_units=[u["unit_id"] for u in content["units"]]
+        full_deck={"version":"4.1","deck":{"title":"QA Full","purpose":"test complete mapping","story_archetype":"custom",
+                   "visual_template":"vivo-house","template_manifest":"brand/vivo/template-manifest.json",
+                   "runtime_preference":["pptxgenjs"],"source_of_truth":"deck_spec.json","confidentiality":"internal"},
+                   "slides":[{"slide_id":"S01","intent":"cover source","takeaway":"all source units are accounted for",
+                              "source_unit_ids":all_units,
+                              "content":[{"block_id":"BLK-001","type":"body_text","text":"all mapped","unit_ids":all_units}],
+                              "layout_candidates":["body"]}]}
+        full_deck_path=d/"deck_full.json"
+        full_deck_path.write_text(json.dumps(full_deck,ensure_ascii=False,indent=2),encoding="utf-8")
+        full_cov=d/"coverage_full.json"
+        p=subprocess.run([sys.executable,str(COVER),"--content",str(bundle/"content_units.json"),
+                          "--deck",str(full_deck_path),"--out",str(full_cov)],capture_output=True,text=True)
+        assert p.returncode==0,p.stdout+p.stderr
+        p=subprocess.run([sys.executable,str(VALID),
+                          "--sources",str(bundle/"source_inventory.json"),
+                          "--content",str(bundle/"content_units.json"),
+                          "--coverage",str(full_cov),
+                          "--deck",str(full_deck_path),
+                          "--template",str(ROOT/"brand/vivo/template-manifest.json")],
+                         capture_output=True,text=True)
+        assert p.returncode==0,p.stdout+p.stderr
+    print("PASS v4.1 source ingestion + fail/pass coverage + cross-manifest validation")
     return 0
 
 if __name__=="__main__": raise SystemExit(main())
