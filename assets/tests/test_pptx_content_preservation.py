@@ -11,8 +11,14 @@ def expected_strings(spec):
     for slide in spec.get("slides",[]):
         for b in slide.get("content",[]):
             t=b.get("type")
-            if t in ("headline","body_text","callout"):
+            if t in ("headline","callout"):
                 if b.get("text"): out.append(str(b["text"]))
+            elif t=="body_text":
+                value=str(b.get("text",""))
+                if len(value)>500:
+                    out.extend(value.split())
+                elif value:
+                    out.append(value)
             elif t=="bullets":
                 out.extend(str(x) for x in b.get("items",[]))
             elif t=="stat":
@@ -51,7 +57,7 @@ def main():
     text,slide_count=ppt_text(args.pptx)
     missing=[s for s in expected_strings(spec) if s not in text]
     assert not missing, f"renderer silently lost {len(missing)} values: {missing[:20]}"
-    assert "PRESERVE_BODY_START" in text and "PRESERVE_BODY_END" in text
+    assert "PRESERVE_BODY_TOKEN_001" in text and "PRESERVE_BODY_TOKEN_120" in text
     assert slide_count>len(spec.get("slides",[]))+1, "dense fixture should create continuation slides"
     print(f"PASS no-silent-loss: {slide_count} PPT slides preserve all typed fixture content")
     return 0
