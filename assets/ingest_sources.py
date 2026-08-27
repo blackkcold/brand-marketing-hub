@@ -81,8 +81,6 @@ def ingest_xlsx(path:Path, source_id:str, b:UnitBuilder):
     wb_values=load_workbook(path,data_only=True,read_only=False)
     for ws in wb_formula.worksheets:
         if ws.sheet_state!="visible": continue
-        max_row,max_col=ws.max_row,ws.max_column
-        nonempty=[]
         min_r=min_c=None; max_r=max_c=None
         formulas=[]
         for row in ws.iter_rows():
@@ -111,7 +109,7 @@ def ingest_xlsx(path:Path, source_id:str, b:UnitBuilder):
                     })
             rows.append(row)
         b.add(source_id,"cell-range",{"sheet":ws.title,"range":range_ref},
-              {"rows":rows,"dimensions":{"rows":len(rows),"cols":max_col-min_col+1 if False else max_c-min_c+1}},
+              {"rows":rows,"dimensions":{"rows":len(rows),"cols":max_c-min_c+1}},
               preserve_mode="semantic",importance="high",formulae=formulas or None)
 
 def ingest_pptx(path:Path, source_id:str, b:UnitBuilder):
