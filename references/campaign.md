@@ -1,6 +1,6 @@
 # 新品传播方案方法论（模块：campaign）
 
-> 本模块属于 brand-marketing-hub。配套模板：`~/.vbuddy/skills/brand-marketing-hub/assets/template-campaign-plan.md`
+> 本模块属于 brand-marketing-hub。配套模板：`assets/template-campaign-plan.md`（仅作 story archetype 参考，不是视觉模板）
 > 与 marketing:活动策划 skill 的分工：该skill覆盖通用活动策划全流程；本模块聚焦 IP/艺人搭载的新品传播提案deck结构与传播策略。
 
 ## 方法论内核
@@ -19,7 +19,7 @@
 6. KOL与社媒：KOL分层（头部明星/腰部创作者/素人UGC）、平台矩阵（微博/抖音/小红书/B站）、内容形式（Vlog/直拍/物料二创）、排期节奏（预热→官宣→上线→第二波）。
 7. 传播节奏图：按时间轴排布 预热期→爆发期→延续期，每阶段标注动作、阵地、物料。
 8. 预算分配：总预算→分项（艺人/媒介/制作/线下/社媒），标注占比与大项。
-9. 输出：套用模板填充为md → 走 hub SKILL.md 的输出流水线转pptx。
+9. 输出：只产出 Campaign 领域判断、结构建议与必要数据需求，写入 Source-to-Deck 的 synthesis/deck_spec 阶段。**本模块不得直接生成 Markdown deck、不得选择 PPT renderer、不得形成独立视觉模板。**
 
 ## 陷阱
 
