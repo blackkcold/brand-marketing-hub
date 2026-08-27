@@ -1,3 +1,5 @@
+> **v4.1 LEGACY STORY REFERENCE ONLY** — 仅保留用于迁移/叙事参考；不得作为视觉模板、不得直接驱动新 PPT renderer。新项目使用 `story-archetypes/archetypes.json` + `deck_spec.json` + vivo visual template。
+
 # 【产品】代言人/艺人合作评估
 <!-- deck: 从人选证据到合作组合的决策报告 -->
 <!-- deck: meta: 【部门】｜【YYYY.MM.DD】｜内部资料 -->
