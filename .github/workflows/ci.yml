@@ -24,6 +24,9 @@ jobs:
       - name: Universal source ingestion and coverage
         run: python assets/tests/test_source_to_deck.py
 
+      - name: v4.1.2 focused hardening regressions
+        run: python assets/tests/test_hardening_contracts.py
+
       - name: Legacy renderer smoke
         run: |
           python assets/tests/test_archetypes.py
