@@ -24,6 +24,19 @@ const template=templatePath&&fs.existsSync(templatePath)?load(templatePath):{
   allowed_fonts:["微软雅黑"],allowed_palettes:{house:["1E46E6","06175E","D1EBFE","FFFFFF","111111"]}
 };
 const assets=new Map((assetManifest.assets||[]).map(a=>[a.asset_id,a]));
+const assetBase=assetsPath?path.dirname(path.resolve(assetsPath)):process.cwd();
+
+function resolveAssetPath(asset){
+  if(!asset||!asset.local_path)return null;
+  return path.isAbsolute(asset.local_path)?asset.local_path:path.resolve(assetBase,asset.local_path);
+}
+function fitAssetRect(asset,x,y,w,h){
+  const iw=Number(asset&&asset.width), ih=Number(asset&&asset.height);
+  if(!(iw>0&&ih>0))return {x,y,w,h};
+  const scale=Math.min(w/iw,h/ih);
+  const rw=iw*scale, rh=ih*scale;
+  return {x:x+(w-rw)/2,y:y+(h-rh)/2,w:rw,h:rh};
+}
 
 const pptx=new pptxgen();
 pptx.layout="LAYOUT_WIDE";
@@ -141,8 +154,10 @@ function addBlock(slide,b,cursor){
     }
   }else if(t==="image"){
     const a=assets.get(b.asset_id);
-    if(a&&a.local_path&&fs.existsSync(a.local_path)){
-      slide.addImage({path:a.local_path,x:.75,y:cursor.y,w:5.7,h:3.2});
+    const assetPath=resolveAssetPath(a);
+    if(a&&assetPath&&fs.existsSync(assetPath)){
+      const box=fitAssetRect(a,.75,cursor.y,5.7,3.2);
+      slide.addImage({path:assetPath,...box});
     }else{
       slide.addShape(pptx.ShapeType.rect,{x:.75,y:cursor.y,w:5.7,h:2.2,fill:{color:"F2F7FF"},line:{color:BLUE}});
       slide.addText("MISSING VERIFIED IMAGE",{x:1.0,y:cursor.y+.9,w:5.2,h:.3,fontFace:font,fontSize:11,bold:true,color:BLUE,align:"center",margin:0});
