@@ -1,12 +1,11 @@
-# brand-marketing-hub 输出流水线依赖（md2pptx_vivo.py / validate_pptx.py）
-# 安装：python3 -m pip install --user -r requirements.txt
-# 版本为已验证基线；如需升级请回归测试后更新。
+# brand-marketing-hub v4.1 local fallback + QA dependencies.
+# Host-native Files/Documents/Spreadsheets/Presentations capabilities remain preferred.
 
 python-pptx==1.0.2
+python-docx>=1.1.2
+openpyxl>=3.1.5
+pypdf>=5.0.0
 Pillow==11.3.0
-# Optional XML safety helpers for extended PPTX QA/transforms.
 defusedxml>=0.7.1
 lxml>=5.0.0
-
-# v4 manifest contract validation.
 jsonschema>=4.23.0
