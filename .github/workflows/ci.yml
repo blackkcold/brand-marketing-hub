@@ -24,6 +24,9 @@ jobs:
       - name: Universal source ingestion and coverage
         run: python assets/tests/test_source_to_deck.py
 
+      - name: v4.1.2 focused hardening regressions
+        run: python assets/tests/test_hardening_contracts.py
+
       - name: Legacy renderer smoke
         run: |
           python assets/tests/test_archetypes.py
@@ -57,3 +60,6 @@ jobs:
           python assets/render_pptx.py /tmp/v4.1-runtime.pptx --out-dir /tmp/v4.1-render
           python assets/validate_render.py /tmp/v4.1-render --json
           test -s /tmp/v4.1-render/v4.1-runtime.pdf
+
+      - name: Runtime dependency security audit
+        run: npm audit --omit=dev --audit-level=high

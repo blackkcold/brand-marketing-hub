@@ -158,7 +158,10 @@
                     "logo"
                   ]
                 }
-              }
+              },
+              "required": [
+                "visual_role"
+              ]
             },
             "then": {
               "properties": {
@@ -170,10 +173,16 @@
                     "verified",
                     "user-provided"
                   ]
+                },
+                "embedded_required": {
+                  "const": true
                 }
               },
               "anyOf": [
                 {
+                  "required": [
+                    "source_ref"
+                  ],
                   "properties": {
                     "source_ref": {
                       "type": "string",
@@ -182,6 +191,9 @@
                   }
                 },
                 {
+                  "required": [
+                    "source_url"
+                  ],
                   "properties": {
                     "source_url": {
                       "type": "string",
@@ -189,6 +201,9 @@
                     }
                   }
                 }
+              ],
+              "required": [
+                "embedded_required"
               ]
             }
           },
@@ -198,7 +213,10 @@
                 "factual_evidence_allowed": {
                   "const": true
                 }
-              }
+              },
+              "required": [
+                "factual_evidence_allowed"
+              ]
             },
             "then": {
               "properties": {
@@ -211,7 +229,31 @@
                 "semantic_verified": {
                   "const": true
                 }
-              }
+              },
+              "anyOf": [
+                {
+                  "required": [
+                    "source_ref"
+                  ],
+                  "properties": {
+                    "source_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "required": [
+                    "source_url"
+                  ],
+                  "properties": {
+                    "source_url": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
             }
           }
         ]

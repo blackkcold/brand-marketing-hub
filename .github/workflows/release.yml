@@ -1,10 +1,9 @@
 name: Auto Release
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - CHANGELOG.md
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -12,11 +11,26 @@ permissions:
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Resolve tested commit
+        id: commit
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tested commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.commit.outputs.sha }}
           fetch-depth: 0
 
       - name: Resolve version
@@ -24,24 +38,35 @@ jobs:
         shell: bash
         run: |
           VERSION=$(awk '/^version:/ {print $2; exit}' SKILL.md)
-          if [ -z "$VERSION" ]; then
-            echo "Unable to resolve version from SKILL.md" >&2
-            exit 1
-          fi
+          test -n "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Require matching changelog section
+      - name: Resolve release state
+        id: state
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           if ! grep -Fq "## [$TAG]" CHANGELOG.md; then
-            echo "CHANGELOG.md must contain a section for $TAG before release" >&2
-            exit 1
+            echo "action=skip" >> "$GITHUB_OUTPUT"
+            echo "No CHANGELOG section for $TAG; nothing to release."
+            exit 0
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "action=skip" >> "$GITHUB_OUTPUT"
+            echo "$TAG is already released; tag remains immutable."
+            exit 0
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "action=release-existing-tag" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=create-tag-and-release" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Prepare release notes
+        if: steps.state.outputs.action != 'skip'
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -53,26 +78,20 @@ jobs:
           ' CHANGELOG.md > release-notes.md
           test -s release-notes.md
 
-      - name: Create tag if missing
+      - name: Create immutable tag
+        if: steps.state.outputs.action == 'create-tag-and-release'
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists; release workflow will not move an existing tag"
-          else
-            git tag "$TAG" "$GITHUB_SHA"
-            git push origin "$TAG"
-          fi
+          git tag "$TAG" "$(git rev-parse HEAD)"
+          git push origin "$TAG"
 
-      - name: Create GitHub Release if missing
+      - name: Create GitHub Release
+        if: steps.state.outputs.action != 'skip'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists"
-          else
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md
-          fi
+          gh release create "$TAG" --title "$TAG" --notes-file release-notes.md

@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 """Render PPTX to PDF/PNGs and a contact-sheet montage using LibreOffice + poppler."""
 from __future__ import annotations
-import argparse, math, shutil, subprocess, tempfile
+import argparse, math, re, shutil, subprocess
 from pathlib import Path
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageDraw
+
+def slide_sort_key(path:Path):
+    m=re.search(r"(\d+)(?=\.png$)",path.name)
+    return int(m.group(1)) if m else 10**9
 
 def cmd(name):
     p=shutil.which(name)
@@ -19,13 +23,18 @@ def main():
     args=ap.parse_args()
     if not args.pptx.exists(): raise SystemExit(f"missing pptx: {args.pptx}")
     args.out_dir.mkdir(parents=True,exist_ok=True)
+    # Reused render directories must not retain pages from an older, longer deck.
+    for stale in args.out_dir.glob("slide-*.png"):
+        stale.unlink(missing_ok=True)
+    for stale in (args.out_dir/(args.pptx.stem+".pdf"),args.out_dir/"montage.png"):
+        stale.unlink(missing_ok=True)
     soffice=cmd("soffice"); pdftoppm=cmd("pdftoppm")
     subprocess.run([soffice,"--headless","--convert-to","pdf","--outdir",str(args.out_dir),str(args.pptx)],check=True)
     pdf=args.out_dir/(args.pptx.stem+".pdf")
     if not pdf.exists(): raise SystemExit("LibreOffice did not create PDF")
     prefix=args.out_dir/"slide"
     subprocess.run([pdftoppm,"-png","-r","120",str(pdf),str(prefix)],check=True)
-    slides=sorted(args.out_dir.glob("slide-*.png"))
+    slides=sorted(args.out_dir.glob("slide-*.png"),key=slide_sort_key)
     if not slides: raise SystemExit("No slide PNGs were rendered")
     thumbs=[]
     for i,p in enumerate(slides,1):

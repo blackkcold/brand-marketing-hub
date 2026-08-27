@@ -21,7 +21,6 @@ from xml.etree import ElementTree as ET
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
-SW,SH=13.333,7.5
 PLACEHOLDER_RE=re.compile(r'【[^】]*】')
 ROOT=Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE=ROOT/"brand/vivo/template-manifest.json"
@@ -45,6 +44,9 @@ SEVERITY={
  "shadow_forbidden":"P2",
  "page_num_missing":"P2",
  "sub_too_long":"P2",
+ "text_overlap":"P1",
+ "font_too_small":"P1",
+ "canvas_not_16_9":"P1",
 }
 
 def issue(code,**kwargs):
@@ -117,18 +119,54 @@ def picture_hash(shape):
     try:return sha256_bytes(shape.image.blob)
     except Exception:return None
 
-def has_known_logo(prs):
+def is_vivo_signal(shape,known_hash=None):
+    if known_hash and picture_hash(shape)==known_hash:
+        return True
+    text=shape_text(shape).strip().lower()
+    if text=="vivo":
+        return True
+    try:
+        name=(shape.name or "").strip().lower()
+        if "vivo" in name and ("logo" in name or "wordmark" in name):
+            return True
+    except Exception:
+        pass
+    return False
+
+def has_brand_signal(prs):
     known=file_sha256(KNOWN_LOGO)
-    if not known:return False
-    for slide in prs.slides:
-        for sh in slide.shapes:
-            if picture_hash(sh)==known:return True
+    # Cover and masters are the strongest deterministic brand locations.
+    if prs.slides:
+        for sh in prs.slides[0].shapes:
+            if is_vivo_signal(sh,known): return True
     try:
         for master in prs.slide_masters:
             for sh in master.shapes:
-                if picture_hash(sh)==known:return True
-    except Exception:pass
+                if is_vivo_signal(sh,known): return True
+    except Exception:
+        pass
+    # Some generated decks place the wordmark only on an end slide.
+    for slide in prs.slides[1:]:
+        for sh in slide.shapes:
+            if is_vivo_signal(sh,known): return True
     return False
+
+def bbox_in(shape):
+    try:
+        l,t,w,h=[v/914400 for v in (shape.left,shape.top,shape.width,shape.height)]
+        return (l,t,l+w,t+h)
+    except Exception:
+        return None
+
+def overlap_ratio(a,b):
+    ax1,ay1,ax2,ay2=a; bx1,by1,bx2,by2=b
+    iw=max(0,min(ax2,bx2)-max(ax1,bx1))
+    ih=max(0,min(ay2,by2)-max(ay1,by1))
+    inter=iw*ih
+    aa=max(0,ax2-ax1)*max(0,ay2-ay1)
+    ba=max(0,bx2-bx1)*max(0,by2-by1)
+    denom=min(aa,ba)
+    return inter/denom if denom>0 else 0
 
 def validate(pptx_path,md_path=None,template_manifest=None):
     prs=Presentation(pptx_path)
@@ -137,8 +175,13 @@ def validate(pptx_path,md_path=None,template_manifest=None):
     allowed_colors=palette_set(template)
     partner_policy=template.get("partner_accent_policy","forbid")
     issues=[]
+    slide_w=prs.slide_width/914400
+    slide_h=prs.slide_height/914400
+    ratio=slide_w/slide_h if slide_h else 0
+    if abs(ratio-(16/9))>0.02:
+        issues.append(issue("canvas_not_16_9",width=round(slide_w,3),height=round(slide_h,3),ratio=round(ratio,4)))
     info={"version":"4.1","file":pptx_path,"slide_count":len(prs.slides),
-          "canvas_in":[round(prs.slide_width/914400,3),round(prs.slide_height/914400,3)],
+          "canvas_in":[round(slide_w,3),round(slide_h,3)],
           "issues":[],"template_id":template.get("template_id")}
 
     for rel in external_image_relationships(pptx_path):
@@ -164,24 +207,31 @@ def validate(pptx_path,md_path=None,template_manifest=None):
             if p["layout"] in ("stats","evidence-grid") and not p["source"]:
                 issues.append(issue("source_missing",page=page))
 
-    logo_present=has_known_logo(prs)
-    if not logo_present and len(prs.slide_masters)<2:
-        issues.append(issue("logo_missing",message="No known embedded vivo wordmark found; master/reference branding must be visually verified."))
+    logo_present=has_brand_signal(prs)
+    if not logo_present:
+        issues.append(issue("logo_missing",message="No deterministic vivo wordmark/brand signal found in cover, masters, or slides."))
 
     for idx,slide in enumerate(prs.slides):
         slide_no=idx+1; cover_or_end=idx in (0,len(prs.slides)-1); has_page=False
+        text_boxes=[]
         for shape in slide.shapes:
-            try:
-                l,t,w,h=[v/914400 for v in (shape.left,shape.top,shape.width,shape.height)]
-                if not cover_or_end and (l<0 or t<0 or l+w>SW+.01 or t+h>SH+.01):
-                    issues.append(issue("shape_out_of_bounds",slide=slide_no,shape=shape.shape_id))
-            except Exception:pass
+            box=bbox_in(shape)
             text=shape_text(shape)
+            material=bool(text.strip()) or getattr(shape,"has_table",False) or getattr(shape,"has_chart",False)
+            if box and material:
+                l,t,r,b=box
+                if l<-.01 or t<-.01 or r>slide_w+.01 or b>slide_h+.01:
+                    issues.append(issue("shape_out_of_bounds",slide=slide_no,shape=shape.shape_id))
+            if box and getattr(shape,"has_text_frame",False) and text.strip():
+                text_boxes.append((shape,box,text.strip()))
             if getattr(shape,"has_text_frame",False):
                 for paragraph in shape.text_frame.paragraphs:
                     for run in paragraph.runs:
                         if run.font.name and allowed_fonts and run.font.name not in allowed_fonts:
                             issues.append(issue("font_off_contract",slide=slide_no,shape=shape.shape_id,font=run.font.name))
+                        if run.text.strip() and run.font.size and run.font.size.pt < 7:
+                            issues.append(issue("font_too_small",slide=slide_no,shape=shape.shape_id,
+                                                font_size=round(run.font.size.pt,2),text=run.text[:40]))
             try:
                 if "outerShdw" in shape._element.xml or "innerShdw" in shape._element.xml:
                     issues.append(issue("shadow_forbidden",slide=slide_no,shape=shape.shape_id))
@@ -196,6 +246,16 @@ def validate(pptx_path,md_path=None,template_manifest=None):
                         code="partner_color_requires_verification" if partner_policy=="allow-verified-brand-colors" else "color_off_palette"
                         issues.append(issue(code,slide=slide_no,shape=shape.shape_id,color=value))
                 except Exception:pass
+        for i in range(len(text_boxes)):
+            shape_a,box_a,text_a=text_boxes[i]
+            if len(text_a)<=1 or re.fullmatch(r'\d+',text_a): continue
+            for j in range(i+1,len(text_boxes)):
+                shape_b,box_b,text_b=text_boxes[j]
+                if len(text_b)<=1 or re.fullmatch(r'\d+',text_b): continue
+                if overlap_ratio(box_a,box_b)>=0.35:
+                    issues.append(issue("text_overlap",slide=slide_no,
+                                        shapes=[shape_a.shape_id,shape_b.shape_id],
+                                        texts=[text_a[:60],text_b[:60]]))
         if not cover_or_end and not has_page:
             issues.append(issue("page_num_missing",slide=slide_no))
 

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/blackkcold/brand-marketing-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/blackkcold/brand-marketing-hub/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/blackkcold/brand-marketing-hub)](https://github.com/blackkcold/brand-marketing-hub/releases)
-[![Skill Version](https://img.shields.io/badge/skill-v4.1.1-1E46E6)](./SKILL.md)
+[![Skill Version](https://img.shields.io/badge/skill-v4.1.2--unreleased-1E46E6)](./SKILL.md)
 
 **vivo Universal Source-to-Deck Skill**
 
@@ -315,4 +315,4 @@ See `brand/vivo/README.md`.
 
 ## Version
 
-Current Skill version: **v4.1.1**
+Current Skill version: **v4.1.2 (Unreleased)**

@@ -55,18 +55,39 @@ def main()->int:
             print(f"PASS schema {kind}: {path}")
 
     cross=[]
-    source_ids={x["source_id"] for x in data.get("sources",{}).get("sources",[])}
+    source_rows=data.get("sources",{}).get("sources",[])
+    source_id_list=[x["source_id"] for x in source_rows]
+    source_ids=set(source_id_list)
     units=data.get("content",{}).get("units",[])
-    unit_ids={x["unit_id"] for x in units}
+    unit_id_list=[x["unit_id"] for x in units]
+    unit_ids=set(unit_id_list)
     unit_map={x["unit_id"]:x for x in units}
     ext_sources=data.get("evidence",{}).get("sources",[])
-    evidence_source_ids={x["source_id"] for x in ext_sources}
+    evidence_source_id_list=[x["source_id"] for x in ext_sources]
+    evidence_source_ids=set(evidence_source_id_list)
     claims=data.get("evidence",{}).get("claims",[])
-    claim_ids={x["claim_id"] for x in claims}
+    claim_id_list=[x["claim_id"] for x in claims]
+    claim_ids=set(claim_id_list)
     assets=data.get("assets",{}).get("assets",[])
-    asset_ids={x["asset_id"] for x in assets}
+    asset_id_list=[x["asset_id"] for x in assets]
+    asset_ids=set(asset_id_list)
     slides=data.get("deck",{}).get("slides",[])
-    slide_ids={x["slide_id"] for x in slides}
+    slide_id_list=[x["slide_id"] for x in slides]
+    slide_ids=set(slide_id_list)
+    block_id_list=[b.get("block_id") for s in slides for b in s.get("content",[]) if b.get("block_id")]
+
+    for label,values in (
+        ("source_id",source_id_list),
+        ("unit_id",unit_id_list),
+        ("evidence_source_id",evidence_source_id_list),
+        ("claim_id",claim_id_list),
+        ("asset_id",asset_id_list),
+        ("slide_id",slide_id_list),
+        ("block_id",block_id_list),
+    ):
+        for value,count in Counter(values).items():
+            if count>1:
+                add(cross,f"duplicate_{label}",f"{value} appears {count} times")
 
     # Content units must point to an ingested file.
     for u in units:
@@ -96,6 +117,12 @@ def main()->int:
             add(cross,"generated_asset_as_fact",a["asset_id"])
         if a.get("embedded_required") and not a.get("local_path"):
             add(cross,"asset_not_materialized",f'{a["asset_id"]} requires embedded local asset')
+        elif a.get("embedded_required") and a.get("local_path") and selected.get("assets"):
+            asset_path=Path(a["local_path"])
+            if not asset_path.is_absolute():
+                asset_path=selected["assets"].parent/asset_path
+            if not asset_path.exists():
+                add(cross,"asset_file_missing",f'{a["asset_id"]} -> {asset_path}')
 
     # Deck references.
     for s in slides:
@@ -109,9 +136,38 @@ def main()->int:
             if asset_ids and aid not in asset_ids:
                 add(cross,"orphan_slide_asset",f'{s["slide_id"]} -> {aid}')
         for b in s.get("content",[]):
+            bid=b.get("block_id")
             for uid in b.get("unit_ids",[]):
                 if unit_ids and uid not in unit_ids:
-                    add(cross,"orphan_block_unit",f'{s["slide_id"]}/{b.get("block_id")} -> {uid}')
+                    add(cross,"orphan_block_unit",f'{s["slide_id"]}/{bid} -> {uid}')
+            for cid in b.get("claim_ids",[]):
+                if claim_ids and cid not in claim_ids:
+                    add(cross,"orphan_block_claim",f'{s["slide_id"]}/{bid} -> {cid}')
+            for aid in b.get("asset_ids",[]):
+                if asset_ids and aid not in asset_ids:
+                    add(cross,"orphan_block_asset",f'{s["slide_id"]}/{bid} -> {aid}')
+            if b.get("type")=="image":
+                aid=b.get("asset_id")
+                if asset_ids and aid not in asset_ids:
+                    add(cross,"orphan_image_asset",f'{s["slide_id"]}/{bid} -> {aid}')
+            if b.get("type")=="source_footer":
+                for ref in b.get("source_ids",[]):
+                    if valid_evidence_refs and ref not in valid_evidence_refs:
+                        add(cross,"orphan_source_footer_ref",f'{s["slide_id"]}/{bid} -> {ref}')
+            if b.get("type")=="table":
+                rows=b.get("rows",[])
+                headers=b.get("headers")
+                expected=len(headers) if isinstance(headers,list) and headers else (len(rows[0]) if rows else 0)
+                for ri,row in enumerate(rows,1):
+                    if expected and len(row)!=expected:
+                        add(cross,"table_width_mismatch",f'{s["slide_id"]}/{bid} row {ri}: {len(row)} != {expected}')
+            if b.get("type")=="chart":
+                d=b.get("data",{})
+                labels=d.get("labels",[])
+                for si,series in enumerate(d.get("series",[]),1):
+                    values=series.get("values",[])
+                    if labels and len(values)!=len(labels):
+                        add(cross,"chart_length_mismatch",f'{s["slide_id"]}/{bid} series {si}: {len(values)} != {len(labels)}')
 
     # Coverage is exhaustive: every normalized source unit gets one disposition.
     if "coverage" in data and units:

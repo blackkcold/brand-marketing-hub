@@ -6,16 +6,20 @@ This does not replace model/vision review. It blocks corrupt, blank, inconsisten
 render output before higher-level visual QA.
 """
 from __future__ import annotations
-import argparse, json
+import argparse, json, re
 from pathlib import Path
 from PIL import Image, ImageStat
+
+def slide_sort_key(path:Path):
+    m=re.search(r"(\d+)(?=\.png$)",path.name)
+    return int(m.group(1)) if m else 10**9
 
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("render_dir",type=Path)
     ap.add_argument("--json",action="store_true")
     args=ap.parse_args()
-    slides=sorted(args.render_dir.glob("slide-*.png"))
+    slides=sorted(args.render_dir.glob("slide-*.png"),key=slide_sort_key)
     issues=[]
     if not slides:
         issues.append({"severity":"P1","code":"render_missing","message":"No slide PNGs found"})

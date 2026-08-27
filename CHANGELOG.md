@@ -5,7 +5,22 @@
 ## [Unreleased]
 
 ### Added
-- （待添加）
+- v4.1.2 hardening：PPTX grouped-shape 递归摄取、真实 canvas / text overlap / tiny-font deterministic QA。
+- Render 页序自然排序，确保 10+ 页 montage/QA 顺序正确。
+- CI 增加 runtime 高危依赖审计。
+
+### Changed
+- fallback runtime 切换到经 CI 验证的 `@lofcz/pptxgenjs 4.1.17`，并保持 PptxGenJS API 兼容路径。
+- Release 改为仅在 main 的 CI 成功后执行；未存在对应版本 Changelog section 时自动跳过。
+- deck block / chart / comparison / timeline schema 改为严格 typed contract。
+
+### Fixed
+- 修复 factual proof asset 仅写 `properties`、实际上未强制 source_ref/source_url 存在的 JSON Schema 漏洞。
+- 修复 embedded asset 只检查 local_path 字符串、不检查文件实际存在的问题。
+- 修复 duplicate source/unit/claim/asset/slide/block ID 被 set 聚合静默吞掉的问题。
+- 修复 block 内 claim/asset/source 引用未进入 cross-manifest validation 的问题。
+- 修复 table 行宽和 chart labels/values 数量不一致仍可通过验证的问题。
+- 修复相对 asset path 依赖当前工作目录，以及图片按固定框拉伸变形的问题。
 
 ## [v4.1.1] - 2026-08-27
 
