@@ -249,4 +249,6 @@ Legacy renderer **不是 v4 新项目默认路径**。
 
 Current Skill version: **v4.0.0**
 
-See [`CHANGELOG.md`](./CHANGELOG.md) for release notes.
+- Release: [`v4.0.0`](https://github.com/blackkcold/brand-marketing-hub/releases/tag/v4.0.0)
+- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
+- CI: [GitHub Actions](https://github.com/blackkcold/brand-marketing-hub/actions)
