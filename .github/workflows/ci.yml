@@ -39,11 +39,12 @@ jobs:
       - name: Generate deterministic fallback deck
         run: |
           node --check runtime/pptxgenjs/render.js
-          node runtime/pptxgenjs/render.js             assets/fixtures/v4.1-deck.json             /tmp/v4.1-runtime.pptx             assets/fixtures/v4.1-assets.json             brand/vivo/template-manifest.json
+          node runtime/pptxgenjs/render.js assets/fixtures/v4.1-deck.json /tmp/v4.1-runtime.pptx assets/fixtures/v4.1-assets.json brand/vivo/template-manifest.json
 
-      - name: Validate generated PPTX
+      - name: Validate generated PPTX and no-silent-loss
         run: |
-          python assets/validate_pptx.py /tmp/v4.1-runtime.pptx             --template-manifest brand/vivo/template-manifest.json             --json > /tmp/pptx-qa.json
+          python assets/tests/test_pptx_content_preservation.py assets/fixtures/v4.1-deck.json /tmp/v4.1-runtime.pptx
+          python assets/validate_pptx.py /tmp/v4.1-runtime.pptx --template-manifest brand/vivo/template-manifest.json --json > /tmp/pptx-qa.json
           cat /tmp/pptx-qa.json
 
       - name: Install real-render dependencies
