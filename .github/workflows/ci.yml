@@ -34,9 +34,7 @@ jobs:
           node-version: "22"
 
       - name: Install PptxGenJS fallback runtime
-        run: |
-          npm install --ignore-scripts
-          npm audit --omit=dev --audit-level=high
+        run: npm install --ignore-scripts
 
       - name: Generate deterministic fallback deck
         run: |
@@ -59,3 +57,6 @@ jobs:
           python assets/render_pptx.py /tmp/v4.1-runtime.pptx --out-dir /tmp/v4.1-render
           python assets/validate_render.py /tmp/v4.1-render --json
           test -s /tmp/v4.1-render/v4.1-runtime.pdf
+
+      - name: Runtime dependency security audit
+        run: npm audit --omit=dev --audit-level=high
