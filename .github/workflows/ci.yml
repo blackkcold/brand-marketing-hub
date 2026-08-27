@@ -34,7 +34,9 @@ jobs:
           node-version: "22"
 
       - name: Install PptxGenJS fallback runtime
-        run: npm install --ignore-scripts
+        run: |
+          npm install --ignore-scripts
+          npm audit --omit=dev --audit-level=high
 
       - name: Generate deterministic fallback deck
         run: |
