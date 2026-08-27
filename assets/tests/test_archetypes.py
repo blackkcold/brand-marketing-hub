@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Smoke coverage for the v3 content-led page archetypes."""
+"""Legacy Markdown renderer archetype regression coverage."""
 from pathlib import Path
 import subprocess, sys, tempfile
 from pptx import Presentation
@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RENDERER = ROOT / 'assets' / 'md2pptx_vivo.py'
 
 MD = '''# Archetype QA
-<!-- deck: v3 layout coverage -->
+<!-- deck: legacy layout coverage -->
 <!-- deck: meta: QA｜2026｜Internal -->
 ## P1｜封面
 ## P2｜目录
@@ -79,6 +79,6 @@ def main():
                 assert 'outerShdw' not in shape._element.xml
         end_text = '\n'.join(shape.text for shape in prs.slides[-1].shapes if getattr(shape, 'has_text_frame', False))
         assert 'THANK YOU' in end_text and '谢谢' in end_text
-    print('PASS archetypes: v3 layouts render successfully')
+    print('PASS legacy archetypes: layouts render successfully')
 
 if __name__ == '__main__': raise SystemExit(main())
