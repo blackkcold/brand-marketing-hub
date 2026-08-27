@@ -132,4 +132,4 @@ for(const s of spec.slides){
   }
   addChrome(slide,s.slide_id);
 }
-pptx.writeFile({fileName:outPath});
+(async()=>{ await pptx.writeFile({fileName:outPath}); console.log(`PASS render: ${outPath}`); })().catch(err=>{ console.error(err); process.exit(1); });
