@@ -1,6 +1,6 @@
 # 品牌视觉合规方法论（模块：design-spec）
 
-> 本模块属于 brand-marketing-hub。规则细则：`references/design-spec-rules.md`（主品牌 3.1 全章节）/ `references/design-spec-subbrands.md`（千镜、可持续发展）；规范原件：`assets/vivo-design-spec/`（轻量安装若缺该目录，按文末 VONE id 在线下载）。
+> 本模块属于 brand-marketing-hub 的**品牌合规层**，不负责选择 PPT renderer。规则细则：`references/design-spec-rules.md`（主品牌 3.1 全章节）/ `references/design-spec-subbrands.md`（千镜、可持续发展）；规范原件：`assets/vivo-design-spec/`（轻量安装若缺该目录，按文末 VONE id 在线下载）。
 
 ## 方法论内核
 
@@ -28,7 +28,7 @@ VONE 最新发布 > assets 原件 > 规则细则摘录 > SKILL.md 速查。冲�
 3. 输出"符合 / 需调整 / 偏离"逐条标注 + 修改前后对照 + 依据（细则章节或原件页码）。多渠道适配（线上/印刷/户外）分别给最小尺寸与工艺建议。
 
 ### W3 出品品牌参数附着（deck/KV/签名档/邮件）
-- deck：企业 PPT 模板参数注入——16:9、微软雅黑（封面标题 40pt、封面副标题 20pt、封面其他 9pt、目录 16pt 行距1.5、章节页 32pt、内页标题 20pt、内页副标题 14pt、内页文本 12pt 行距1.25）；配色取 vivo 蓝/深蓝/浅蓝；版式与页面类型见 `references/deck-style.md`，默认用 `assets/md2pptx_vivo.py` 转换（封面渐变+字标、蓝标题条、卡片/表格/图文版式）；交付时提示视觉终稿按 VI 人工复核。
+- deck：**视觉模板与故事模板分离。** 优先加载 `brand/vivo/template-manifest.json` 指向的真实 vivo reference/master 或 retained artifact template，并复用其 master、layout、theme、typography、geometry 与 recurring chrome。`references/deck-style.md` 仅在无 reference 时作为 fallback style guide；`assets/md2pptx_vivo.py` 仅为 legacy compatibility，不得作为默认 renderer。字体/色盘按当前 reference + 官方 VI 校验，合作品牌色仅可作为经验证的 accent。
 - KV/海报：附色盘三色调（亮=人文愉悦灵动 / 蓝=科技专业信赖 / 暗=智慧领先数字化）、字体排版参数（主标题 Bold -30/1.1x、副标题 Demibold -20/1.2x、正文 Regular -20/1.4x）、视距→页边距→角标标识比例（手持 2/3x、近 4/7x、远 1/2x）、标识默认左上角。
 - 品牌联合（vivo×ZEISS/IP/艺人）：横版分隔线高="o"高、宽="o"宽 2%；竖版分隔线宽="o"高 4 倍、高="o"宽 2%、间距="o"宽；安全距离 1.5x；vivo 主场置左；只可用字标；微调一事一议。
 - 邮件签名/文具：直接用 `assets/vivo-design-spec/02-vivo邮件签名档/` 模板 docx。
