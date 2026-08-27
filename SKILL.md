@@ -1,10 +1,10 @@
 ---
 name: brand-marketing-hub
 description: vivo 通用 Source-to-Deck 工作包（v4.1）。核心目标：输入任意文档、表格、PPT、PDF 或多文件资料，完整摄取与追踪源内容，必要时进行安全的深度联网研究，重组为决策清晰的故事结构，并通过真实 vivo reference/master 或统一 vivo visual template 生成可编辑、视觉一致的 PPT 汇报文件；IP联名、艺人、Campaign、VI 等作为可选领域增强模块。
-version: 4.1.0
+version: 4.1.1
 ---
 
-# vivo Universal Source-to-Deck v4.1
+# vivo Universal Source-to-Deck v4.1.1
 
 ## 唯一主目标
 
