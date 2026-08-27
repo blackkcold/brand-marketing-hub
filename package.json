@@ -4,6 +4,6 @@
   "version": "4.1.2",
   "description": "Deterministic fallback presentation runtime for brand-marketing-hub",
   "dependencies": {
-    "pptxgenjs": "4.0.1"
+    "@neo-ma/pptxgenjs": "4.2.0"
   }
 }
