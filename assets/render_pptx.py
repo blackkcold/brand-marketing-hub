@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 """Render PPTX to PDF/PNGs and a contact-sheet montage using LibreOffice + poppler."""
 from __future__ import annotations
-import argparse, math, shutil, subprocess, tempfile
+import argparse, math, re, shutil, subprocess
 from pathlib import Path
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageDraw
+
+def slide_sort_key(path:Path):
+    m=re.search(r"(\d+)(?=\.png$)",path.name)
+    return int(m.group(1)) if m else 10**9
 
 def cmd(name):
     p=shutil.which(name)
@@ -25,7 +29,7 @@ def main():
     if not pdf.exists(): raise SystemExit("LibreOffice did not create PDF")
     prefix=args.out_dir/"slide"
     subprocess.run([pdftoppm,"-png","-r","120",str(pdf),str(prefix)],check=True)
-    slides=sorted(args.out_dir.glob("slide-*.png"))
+    slides=sorted(args.out_dir.glob("slide-*.png"),key=slide_sort_key)
     if not slides: raise SystemExit("No slide PNGs were rendered")
     thumbs=[]
     for i,p in enumerate(slides,1):
