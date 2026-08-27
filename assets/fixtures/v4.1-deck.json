@@ -44,6 +44,148 @@
         "callout-stats",
         "bullets"
       ]
+    },
+    {
+      "slide_id": "S02",
+      "intent": "prove no silent loss",
+      "takeaway": "Dense source content must continue across slides without truncation",
+      "content": [
+        {
+          "block_id": "BLK-010",
+          "type": "bullets",
+          "items": [
+            "PRESERVE_BULLET_01",
+            "PRESERVE_BULLET_02",
+            "PRESERVE_BULLET_03",
+            "PRESERVE_BULLET_04",
+            "PRESERVE_BULLET_05",
+            "PRESERVE_BULLET_06",
+            "PRESERVE_BULLET_07",
+            "PRESERVE_BULLET_08",
+            "PRESERVE_BULLET_09",
+            "PRESERVE_BULLET_10",
+            "PRESERVE_BULLET_11",
+            "PRESERVE_BULLET_12",
+            "PRESERVE_BULLET_13"
+          ]
+        },
+        {
+          "block_id": "BLK-011",
+          "type": "comparison",
+          "items": [
+            {
+              "title": "PRESERVE_CMP_TITLE_01",
+              "text": "PRESERVE_CMP_TEXT_01"
+            },
+            {
+              "title": "PRESERVE_CMP_TITLE_02",
+              "text": "PRESERVE_CMP_TEXT_02"
+            },
+            {
+              "title": "PRESERVE_CMP_TITLE_03",
+              "text": "PRESERVE_CMP_TEXT_03"
+            },
+            {
+              "title": "PRESERVE_CMP_TITLE_04",
+              "text": "PRESERVE_CMP_TEXT_04"
+            },
+            {
+              "title": "PRESERVE_CMP_TITLE_05",
+              "text": "PRESERVE_CMP_TEXT_05"
+            },
+            {
+              "title": "PRESERVE_CMP_TITLE_06",
+              "text": "PRESERVE_CMP_TEXT_06"
+            },
+            {
+              "title": "PRESERVE_CMP_TITLE_07",
+              "text": "PRESERVE_CMP_TEXT_07"
+            }
+          ]
+        },
+        {
+          "block_id": "BLK-012",
+          "type": "table",
+          "headers": [
+            "Key",
+            "Value"
+          ],
+          "rows": [
+            [
+              "PRESERVE_ROW_01",
+              "VALUE_01"
+            ],
+            [
+              "PRESERVE_ROW_02",
+              "VALUE_02"
+            ],
+            [
+              "PRESERVE_ROW_03",
+              "VALUE_03"
+            ],
+            [
+              "PRESERVE_ROW_04",
+              "VALUE_04"
+            ],
+            [
+              "PRESERVE_ROW_05",
+              "VALUE_05"
+            ],
+            [
+              "PRESERVE_ROW_06",
+              "VALUE_06"
+            ],
+            [
+              "PRESERVE_ROW_07",
+              "VALUE_07"
+            ],
+            [
+              "PRESERVE_ROW_08",
+              "VALUE_08"
+            ],
+            [
+              "PRESERVE_ROW_09",
+              "VALUE_09"
+            ],
+            [
+              "PRESERVE_ROW_10",
+              "VALUE_10"
+            ],
+            [
+              "PRESERVE_ROW_11",
+              "VALUE_11"
+            ],
+            [
+              "PRESERVE_ROW_12",
+              "VALUE_12"
+            ],
+            [
+              "PRESERVE_ROW_13",
+              "VALUE_13"
+            ],
+            [
+              "PRESERVE_ROW_14",
+              "VALUE_14"
+            ]
+          ]
+        },
+        {
+          "block_id": "BLK-013",
+          "type": "body_text",
+          "text": "PRESERVE_BODY_START 内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。内容需要完整保留。 PRESERVE_BODY_END"
+        },
+        {
+          "block_id": "BLK-014",
+          "type": "source_footer",
+          "source_ids": [
+            "SRC-PRESERVE-01",
+            "SRC-PRESERVE-02"
+          ]
+        }
+      ],
+      "layout_candidates": [
+        "dense-continuation"
+      ]
     }
   ]
 }
