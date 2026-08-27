@@ -47,8 +47,7 @@
         "preserve_exact": {
           "type": "boolean"
         }
-      },
-      "additionalProperties": true
+      }
     },
     "headline": {
       "allOf": [
@@ -68,7 +67,8 @@
             "text"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "body": {
       "allOf": [
@@ -88,7 +88,8 @@
             "text"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "bullets": {
       "allOf": [
@@ -104,14 +105,16 @@
               "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "minItems": 1
             }
           },
           "required": [
             "items"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "stat": {
       "allOf": [
@@ -139,7 +142,8 @@
             "label"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "table": {
       "allOf": [
@@ -152,12 +156,31 @@
               "const": "table"
             },
             "headers": {
-              "type": "array"
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "integer",
+                  "boolean",
+                  "null"
+                ]
+              }
             },
             "rows": {
               "type": "array",
+              "minItems": 1,
               "items": {
-                "type": "array"
+                "type": "array",
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "null"
+                  ]
+                }
               }
             }
           },
@@ -165,7 +188,8 @@
             "rows"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "chart": {
       "allOf": [
@@ -205,7 +229,8 @@
             "data"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "image": {
       "allOf": [
@@ -229,7 +254,8 @@
             "asset_id"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "comparison": {
       "allOf": [
@@ -245,14 +271,16 @@
               "type": "array",
               "items": {
                 "type": "object"
-              }
+              },
+              "minItems": 1
             }
           },
           "required": [
             "items"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "callout": {
       "allOf": [
@@ -278,7 +306,8 @@
             "text"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "timeline": {
       "allOf": [
@@ -294,14 +323,16 @@
               "type": "array",
               "items": {
                 "type": "object"
-              }
+              },
+              "minItems": 1
             }
           },
           "required": [
             "items"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "sourceFooter": {
       "allOf": [
@@ -316,15 +347,18 @@
             "source_ids": {
               "type": "array",
               "items": {
-                "type": "string"
-              }
+                "type": "string",
+                "pattern": "^(SRC-[0-9]{3,}|UNIT-[0-9]{4,})$"
+              },
+              "minItems": 1
             }
           },
           "required": [
             "source_ids"
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     }
   },
   "properties": {
