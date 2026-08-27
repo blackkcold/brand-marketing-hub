@@ -2,253 +2,312 @@
 
 [![CI](https://github.com/blackkcold/brand-marketing-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/blackkcold/brand-marketing-hub/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/blackkcold/brand-marketing-hub)](https://github.com/blackkcold/brand-marketing-hub/releases)
-[![Skill Version](https://img.shields.io/badge/skill-v4.0.0-1E46E6)](./SKILL.md)
+[![Skill Version](https://img.shields.io/badge/skill-v4.1.1-1E46E6)](./SKILL.md)
 
-面向品牌营销、合作策略与高质量演示文稿生产的 AI Skill。覆盖 **品牌调研、IP 联名、艺人评估、Campaign、品牌视觉合规和 PPT/Slides 生产**。
+**vivo Universal Source-to-Deck Skill**
 
-> **v4 核心链路：Research → Evidence → Story → Deck Spec → Presentation Runtime → QA / Repair**
+> 任意文档 / 表格 / PPT / PDF → 深度理解与安全研究 → 内容重组 → vivo 一致性可编辑 PPT → Render / QA / Repair
 
-v4 不再把“做 PPT”定义成 Markdown 到固定坐标 PPTX 的转换，而是先验证事实和素材、建立决策叙事，再选择最合适的原生演示文稿运行时，并通过真实渲染做视觉 QA。
-
-## Why v4
-
-| 问题 | v3.x | v4 |
-|---|---|---|
-| 外部事实 | `@source` 文本标记 | Claim / Source Manifest |
-| 真实图片 | 本地路径为主 | Asset Manifest + provenance |
-| 页面模型 | Markdown + 单一 `@layout` | `deck_spec.json` + `layout_candidates` |
-| 模板 | Style guide 重画 | Reference / master native first |
-| Renderer | python-pptx 主导 | Native presentation runtime first |
-| QA | XML/结构检查为主 | Semantic + Structural + Geometry + Visual |
-| 错误放行 | 问题页比例 | P0/P1 Severity Gate |
-| 超容量内容 | 可能截断 | Never Silent Loss |
+v4.1 将项目从“品牌营销模块 + Markdown/PPTX renderer”重构为通用的 **Source-to-Deck production system**。IP 联名、艺人、Campaign、VI 仍保留，但只是可选领域增强模块，不再拥有 PPT 生成路径。
 
 ## Architecture
 
 ```text
-User Brief
-   │
-   ▼
-Brief Parser
-   │
-   ▼
-Research & Evidence
-   ├── claims.json
-   ├── sources.json
-   └── assets.json
-   │
-   ▼
-Story Planner
-   │
-   ▼
-deck_spec.json
-   │
-   ▼
-Template / Reference Resolver
-   │
-   ├── ChatGPT Presentations / PowerPoint
-   ├── OpenAI Artifact Presentation Runtime
-   ├── PptxGenJS
-   └── Legacy python-pptx fallback
-   │
-   ▼
-Editable PPTX
-   │
-   ▼
-Render → QA → Repair
+DOCX / XLSX / PPTX / PDF / CSV / connected sources
+                         │
+                         ▼
+                Source Ingestion
+          source_inventory.json
+            content_units.json
+                         │
+                         ▼
+        Preservation + Confidentiality
+                         │
+                         ▼
+             Research & Evidence
+               evidence.json
+                assets.json
+                         │
+                         ▼
+                   Synthesis
+                         │
+                         ▼
+               Story Archetype
+                         +
+               vivo Visual Template
+                         │
+                         ▼
+                deck_spec.json
+                coverage.json
+                         │
+                         ▼
+     Presentations / PowerPoint / Artifact
+                or PptxGenJS
+                         │
+                         ▼
+                 Editable PPTX
+                         │
+                         ▼
+          PDF / PNG / Montage Render
+                         │
+                         ▼
+ Coverage / Semantic / Embedded Assets
+ Template / Structural / Geometry / Visual QA
+                         │
+                         ▼
+                      Repair
 ```
 
-详细设计见 [`references/v4-architecture.md`](./references/v4-architecture.md)。
+## What v4.1 fixes
 
-## 1. Research & Evidence
+| Risk | v4.1 |
+|---|---|
+| Word/Excel/PPT/PDF only loosely treated as “brief” | Universal ingestion + locators |
+| AI summarization can silently drop source content | Exhaustive Coverage Manifest |
+| User-file evidence has no URL | UNIT-based provenance |
+| Story template and visual template mixed | Separate `story_archetype` / `visual_template` |
+| Domain module routes back to Markdown renderer | Domain modules are analysis-only |
+| PptxGenJS only documented | Executable fallback runtime included |
+| Visual QA only described | Executable PDF/PNG/montage renderer included |
+| Linked online images can leak into PPT | External image relationship = P0 |
+| Any picture could count as vivo logo | Known embedded wordmark verification |
+| Fixed 微软雅黑 / fixed palette regardless of reference | Template-aware font/palette contract |
+| Partner-brand accent flagged incorrectly | Verified partner accent policy |
+| Release tag can be created halfway through refactor | Changelog-gated release workflow |
+| CI only checks legacy renderer | Multi-format ingestion + coverage + PPTX + real render CI |
 
-外部事实、案例、产品、日期、排名、数据与事实图片必须先进入 Evidence Layer，再进入 deck。
+## 1. Universal Source Ingestion
 
-默认规则：
+Preferred execution uses host-native file capabilities. Local fallback:
 
-- 官方信源优先；
-- 对影响最终建议的关键事实，在可行时做第二权威来源交叉验证；
-- 时间敏感信息记录发布日期/更新时间和检索时间；
-- 不同信源冲突时主动暴露，不静默选择；
-- 未验证的信息不得为了填模板而编造；
-- 真实联名、产品、人物、历史案例优先使用可追溯真实素材。
+```bash
+python assets/ingest_sources.py   brief.docx data.xlsx old-deck.pptx appendix.pdf   --out-dir source_bundle
+```
 
-证据关系：
+Outputs:
+
+- `source_inventory.json`
+- `content_units.json`
+
+Supported fallback inputs:
+
+- DOCX
+- XLSX
+- PPTX
+- PDF
+- CSV
+
+The schemas preserve file identity and locators such as paragraph, table, sheet/range, slide/shape and PDF page.
+
+## 2. Preservation & Coverage
+
+Content units are marked:
+
+- `exact`
+- `semantic`
+- `summarize-ok`
+- `optional`
+
+Build an initial coverage manifest:
+
+```bash
+python assets/init_coverage.py   --content content_units.json   --deck deck_spec.json   --out coverage.json
+```
+
+Every source unit must have exactly one disposition. Missing source content is not silently ignored.
+
+## 3. Research & Security
+
+Research runs after ingestion so the system knows what is already present.
+
+Before public web search, inputs are classified as:
+
+- public
+- internal
+- confidential
+- restricted
+
+Confidential/internal identifiers are sanitized before search. Unreleased product names, internal budgets, contracts, personal data and internal project codes must not be copied into public search queries.
+
+Research includes:
+
+- question planning
+- entity resolution
+- official-first sourcing
+- local-language query expansion
+- freshness checking
+- conflict handling
+- factual image verification
+- explicit stop criteria
+
+## 4. Evidence & Real Assets
+
+Claims can point to:
 
 ```text
-Claim → Source → Slide
-Asset → Source → Slide
+UNIT-xxxx  # user source file
+SRC-xxx    # external research source
 ```
 
-相关文件：
+Factual assets record:
 
-- [`workflows/research.md`](./workflows/research.md)
-- [`schemas/evidence.schema.json`](./schemas/evidence.schema.json)
-- [`schemas/asset.schema.json`](./schemas/asset.schema.json)
+- subject entity
+- collaboration
+- product model
+- visual role
+- source
+- semantic verification
+- embedding requirement
 
-### Real Asset Policy
+Generated concepts cannot be treated as factual proof.
 
-生成图片可以用于概念创意、Mood/KV Direction、未发生方案可视化；**不得冒充真实品牌产品、真实联名、真实人物、真实历史活动或事实证明材料。**
+## 5. Story vs Visual Template
 
-## 2. Story & Deck Spec
+These are independent:
 
-v4 新 deck 的 source of truth 是 `deck_spec.json`，Markdown 仅保留为 human-readable projection / legacy input。
+### Story Archetype
+`research / strategy / campaign / brand-partnership / business-review / project-update / proposal / custom`
 
-每页至少定义：
+### Visual Template
+Default: `vivo-house`
 
-- `intent`：为什么存在；
-- `takeaway`：看完必须记住什么；
-- `claim_ids`：哪些事实支撑；
-- `asset_ids`：使用哪些素材；
-- `layout_candidates`：多个候选布局；
-- `must_preserve`：不可丢失的用户输入。
+Defined by:
 
-Schema：[`schemas/deck.schema.json`](./schemas/deck.schema.json)
+- `brand/vivo/template-manifest.json`
+- `brand/vivo/layout-map.json`
 
-## 3. Presentation Runtime
+A real authorized vivo reference/master always takes priority over fallback style rules.
 
-brand-marketing-hub 负责 **领域智能、证据、故事结构与品牌 QA**，不重复制造宿主已经具备的完整 presentation engine。
+## 6. Presentation Runtime
 
-| Runtime | 用途 | 优先级 |
-|---|---|---:|
-| ChatGPT Presentations / PowerPoint | 基于真实模板创建、编辑、精修 | 最高 |
-| OpenAI Artifact Presentation Runtime | ChatGPT 内原生可编辑演示文稿 | 高 |
-| PptxGenJS | CLI / server deterministic generation | 高 |
-| python-pptx | readback、validation、patch、legacy | 兼容 |
+Priority:
 
-详见 [`workflows/runtime-adapters.md`](./workflows/runtime-adapters.md)。
+1. Host-native Presentations / PowerPoint
+2. Artifact presentation runtime
+3. PptxGenJS deterministic fallback
+4. Legacy python-pptx
 
-### Reference-native First
+PptxGenJS fallback:
 
-如果用户提供 `.pptx` / `.potx` / master deck，优先复用其原生 **master、layout、theme、typography、geometry、charts、tables 与 recurring chrome**，而不是把参考 PPT 总结成几个颜色和字号后重新绘制。
+```bash
+npm install
+node runtime/pptxgenjs/render.js   deck_spec.json output.pptx assets.json brand/vivo/template-manifest.json
+```
 
-`references/deck-style.md` 在 v4 中属于 fallback style guide，不是 reference deck 的替代品。
+Legacy Markdown renderer remains only for regression/compatibility.
 
-## 4. QA & Delivery Gate
+## 7. Real Render QA
 
-v4 QA 分四层：
+```bash
+python assets/render_pptx.py output.pptx --out-dir render
+```
 
-1. **Semantic QA**：claim/source、日期数字、真实图片匹配、must-preserve 完整性；
-2. **Structural QA**：文件结构、placeholder、对象、字体色值、silent data loss；
-3. **Geometry QA**：overflow、overlap、out-of-bounds、alignment、crop、可读性；
-4. **Visual QA**：基于真实 render 的层级、节奏、留白、均衡、图片质量与品牌一致性。
+Produces:
+
+- PDF
+- per-slide PNGs
+- `montage.png`
+
+Visual QA checks actual rendered slides, not only PPTX XML.
+
+## 8. PPTX Delivery Gate
+
+```bash
+python assets/validate_pptx.py output.pptx   --template-manifest brand/vivo/template-manifest.json   --json
+```
+
+Delivery-blocking checks include:
+
+- external linked images
+- placeholders
+- out-of-bounds shapes
+- missing/incorrect brand embedding signals
+- template-aware fonts/palette
+- legacy data-loss hazards
+
+## 9. Full Manifest Validation
+
+```bash
+python assets/validate_v4_manifests.py   --sources source_inventory.json   --content content_units.json   --evidence evidence.json   --assets assets.json   --coverage coverage.json   --deck deck_spec.json   --template brand/vivo/template-manifest.json
+```
+
+Cross-manifest checks include provenance, orphan IDs, coverage completeness, exact-content preservation, factual-asset safety and template consistency.
+
+## 10. Revision Workflow
+
+Existing PPT changes should be slide/object-level when possible:
+
+- inspect existing deck;
+- patch only affected objects/slides;
+- preserve untouched slides;
+- update evidence/coverage only when meaning changes;
+- rerender affected slides and neighboring slides;
+- rerun full P0/P1 gate before delivery.
+
+## 11. Repository Structure
 
 ```text
-PPTX → PDF / Slide PNG → Montage → Visual Review → Repair → Re-render
+SKILL.md
+workflows/
+  source-to-deck.md
+  ingest/
+  research.md
+  synthesis.md
+  deck-production.md
+  visual-qa.md
+  revision.md
+schemas/
+  source.schema.json
+  content-unit.schema.json
+  evidence.schema.json
+  asset.schema.json
+  coverage.schema.json
+  deck.schema.json
+  template.schema.json
+  qa.schema.json
+brand/vivo/
+  template-manifest.json
+  layout-map.json
+  README.md
+runtime/
+  openai-presentations.md
+  powerpoint.md
+  artifact-tool.md
+  pptxgenjs/
+assets/
+  ingest_sources.py
+  init_coverage.py
+  validate_v4_manifests.py
+  validate_pptx.py
+  render_pptx.py
+  md2pptx_vivo.py   # legacy only
+tests/
+.github/workflows/
 ```
 
-| Severity | 示例 | 交付 |
-|---|---|---:|
-| **P0 Critical** | 事实错误、错事实图、静默丢内容、placeholder、关键品牌违规 | ❌ |
-| **P1 Major** | overflow、overlap、不可读、严重 crop、坏表/坏图、证据页缺来源 | ❌ |
-| **P2 Minor** | 明显间距/对齐/一致性问题 | 原则上修复 |
-| **P3 Cosmetic** | 可选精修 | ✅ |
+## 12. CI
 
-**任何 P0 / P1 都阻断交付。**
+CI now performs:
 
-## 5. Never Silent Loss
+1. v4.1 architecture contract checks;
+2. generated DOCX/XLSX/PPTX/PDF/CSV ingestion;
+3. exhaustive coverage gate test;
+4. legacy regression tests;
+5. PptxGenJS fallback generation;
+6. PPTX validation;
+7. LibreOffice real rendering;
+8. PDF + PNG + montage existence checks.
 
-> 用户输入、已验证证据和 `must_preserve` 信息不得静默截断或丢失。
+## vivo Template Boundary
 
-如果内容无法放入单页：
+The public repository does not commit confidential internal master decks. Runtime order:
 
-1. 更换 layout；
-2. 压缩非关键表达但不改变含义；
-3. 拆成 continuation slide；
-4. 无法处理时明确失败。
+1. latest authorized user-supplied vivo master/reference;
+2. retained `artifact-template-vivo-internal-report` if available;
+3. public `brand/vivo` fallback system.
 
-Legacy renderer 已移除类似 `rows = rows[:10]` / `cols = min(cols, 6)` 的静默截断逻辑。
-
-## 6. Domain Workflows
-
-- **IP Collaboration**：[`references/ip-collab.md`](./references/ip-collab.md)
-- **Celebrity**：[`references/celebrity.md`](./references/celebrity.md)
-- **Campaign**：[`references/campaign.md`](./references/campaign.md)
-- **Brand / Design Compliance**：[`references/design-spec.md`](./references/design-spec.md)
-- **Research**：[`workflows/research.md`](./workflows/research.md)
-- **Deck Production**：[`workflows/deck-production.md`](./workflows/deck-production.md)
-
-## 7. Repository Structure
-
-```text
-brand-marketing-hub/
-├── SKILL.md
-├── README.md
-├── CHANGELOG.md
-├── workflows/
-│   ├── research.md
-│   ├── deck-production.md
-│   └── runtime-adapters.md
-├── schemas/
-│   ├── evidence.schema.json
-│   ├── asset.schema.json
-│   ├── deck.schema.json
-│   └── qa.schema.json
-├── references/
-│   ├── v4-architecture.md
-│   ├── pptx-workflow.md
-│   ├── deck-style.md
-│   ├── ip-collab.md
-│   ├── celebrity.md
-│   ├── campaign.md
-│   └── design-spec.md
-├── assets/
-│   ├── validate_v4_manifests.py
-│   ├── validate_pptx.py
-│   ├── md2pptx_vivo.py
-│   └── tests/
-└── .github/workflows/
-    └── ci.yml
-```
-
-## 8. Validation
-
-安装 QA / legacy 依赖：
-
-```bash
-python3 -m pip install -r assets/requirements.txt
-```
-
-验证 v4 manifests：
-
-```bash
-python3 assets/validate_v4_manifests.py \
-  --evidence evidence/claims.json \
-  --assets evidence/assets.json \
-  --deck deck_spec.json
-```
-
-运行 regression tests：
-
-```bash
-python3 assets/tests/test_v4_contracts.py
-python3 assets/tests/test_archetypes.py
-python3 assets/tests/test_render_smoke.py
-```
-
-Legacy Markdown renderer：
-
-```bash
-python3 assets/md2pptx_vivo.py input.md output.pptx
-python3 assets/validate_pptx.py output.pptx --md input.md --json
-```
-
-Legacy renderer **不是 v4 新项目默认路径**。
-
-## 9. Brand Asset Boundary
-
-内部品牌规范、版权资料与企业 master deck 不应在未经授权的情况下上传到公开仓库。
-
-公开仓库保存方法论、schema、workflow、validator 与 fallback style rules；运行时通过用户提供或授权位置加载最新官方 VI、内部 master/reference deck、受限版权素材和内部业务数据。
-
-品牌规范冲突时，优先级为：
-
-> **官方原件 / VONE > retained reference deck（版式） > design-spec rules > fallback deck-style > renderer default**
+See `brand/vivo/README.md`.
 
 ## Version
 
-Current Skill version: **v4.0.0**
-
-- Release: [`v4.0.0`](https://github.com/blackkcold/brand-marketing-hub/releases/tag/v4.0.0)
-- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
-- CI: [GitHub Actions](https://github.com/blackkcold/brand-marketing-hub/actions)
+Current Skill version: **v4.1.1**
