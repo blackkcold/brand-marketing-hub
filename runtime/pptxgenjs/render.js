@@ -9,7 +9,7 @@
  */
 const fs=require("fs");
 const path=require("path");
-const pptxgen=require("@neo-ma/pptxgenjs");
+const pptxgen=require("@lofcz/pptxgenjs");
 
 const [,,deckPath,outPath,assetsPath,templatePath]=process.argv;
 if(!deckPath||!outPath){
