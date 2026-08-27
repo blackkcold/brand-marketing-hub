@@ -1,109 +1,115 @@
 ---
 name: brand-marketing-hub
-description: 品牌营销一站式工作包（总入口）。四大模块：IP联名、艺人评估、传播方案、品牌视觉合规（vivo VI 3.1 内置）。触发词包括"品牌调研"、"IP联名方案"、"IP合作提案"、"IP评估"、"联名报价测算"、"艺人分析报告"、"代言人评估"、"名人备选"、"艺人TGI分析"、"风险预判"、"1+N艺人矩阵"、"传播方案"、"传播规划"、"新品上市传播"、"campaign方案"、"传播作战图"、"RTB构建"、"KOL传播排期"、"md转pptx"、"提案PPT"、"品牌视觉"、"VI"、"色值"、"logo规范"、"标识规范"、"设计审查"、"品牌一致性"、"邮件签名档"等。agent 自主识别意图，按 L0–L3 分层路由选模块执行，支持复合任务多模块串联，经 md→pptx 流水线输出并自动附着品牌合规参数。
-version: 3.2.0
+description: 品牌营销一站式工作包（v4）。覆盖品牌调研、IP联名、艺人评估、传播方案、品牌视觉合规与高质量演示文稿生产。v4 默认采用 Research → Evidence → Story → Deck Spec → Presentation Runtime → QA/Repair 闭环；外部事实官方信源优先，真实案例与产品图必须可追溯；优先调用宿主环境原生 Presentations/PowerPoint/Artifact 能力，PptxGenJS 为 CLI fallback，python-pptx 仅保留兼容与验证用途。
+version: 4.0.0
 ---
 
-# 品牌营销调研中心（brand-marketing-hub）
+# 品牌营销调研中心 v4
 
-本skill是一个自包含的品牌营销工作包：SKILL.md 负责分层路由与速查；references/ 存放四大模块工作流与规则细则；assets/ 集中全部模板、转换脚本、演示样张与品牌规范原件（vivo VI 3.1 中英 PDF、邮件签名档、千镜、可持续发展）。
+## 核心原则
 
-## 分层路由（L0–L3）
+1. **Evidence first, slides second.** 外部事实、案例、产品、日期、排名、数据与事实图片先验证，再进入 deck。
+2. **deck_spec.json 是演示文稿 Source of Truth。** Markdown 仅作为人类可读投影和 legacy 输入，不再同时承担事实库、页面模型与渲染指令。
+3. **Reference/master first.** 有真实 PPTX/POTX/reference deck 时，优先复用其 master、layout、theme、geometry 和 recurring chrome，不从文字规则重画一个“相似模板”。
+4. **Native presentation runtime first.** 宿主存在 ChatGPT Presentations / PowerPoint / Artifact presentation capability 时优先使用；CLI/无原生能力时用 PptxGenJS；`assets/md2pptx_vivo.py` 仅作为 legacy fallback。
+5. **Never silently lose content.** 禁止静默截断、丢行、丢列、裁掉用户要求保留的事实；放不下必须换版式、压缩非关键文字、拆页或明确失败。
+6. **P0/P1 block delivery.** 事实错误、错图、占位符、内容丢失、品牌关键违规、overflow/overlap/不可读等问题未修复前不得交付。
 
-- **L0 意图层（本页）**：识别任务类型 → 主模块；组合任务定串联顺序；速查可直接答的高频参数。
-- **L1 模块层**：`references/{ip-collab, celebrity, campaign, design-spec}.md` 的步骤化工作流。
-- **L2 细则层**：`references/design-spec-rules.md`（主品牌 3.1 全章节数值规则）、`references/design-spec-subbrands.md`（千镜 / 可持续发展）。
-- **L3 原件层**：`assets/vivo-design-spec/` 规范原件 + VONE 在线（https://vone.vivo.xyz/ 品牌资产分类）。版本与数值争议的唯一权威。
+## 路由
 
-### L0 路由表
+| 任务 | 领域工作流 |
+|---|---|
+| IP 联名、合作提案、权益/报价 | `references/ip-collab.md` |
+| 艺人/代言人/TGI/风险/1+N | `references/celebrity.md` |
+| campaign、上市传播、RTB、KOL、预算/排期 | `references/campaign.md` |
+| VI、logo、颜色、字体、设计审查 | `references/design-spec.md` |
+| 市场/品牌/案例/趋势/候选调研 | `workflows/research.md` |
+| 任何 PPTX/Slides 产出或改版 | `workflows/deck-production.md` + `workflows/runtime-adapters.md` |
 
-| 任务信号 | 路由到 | 配套模板/资产 |
+组合任务按业务依赖执行：研究/证据 → 人/IP 判断 → campaign/策略 → deck production；design-spec 贯穿视觉交付。
+
+## v4 五层架构
+
+- **Domain**：IP / celebrity / campaign / design-spec / research。
+- **Evidence**：`schemas/evidence.schema.json` + `schemas/asset.schema.json`。
+- **Story**：每页 intent、takeaway、claim_ids、asset_ids、layout_candidates，落到 `deck_spec.json`。
+- **Runtime**：ChatGPT Presentations / PowerPoint → Artifact presentation runtime → PptxGenJS → legacy Python。
+- **QA**：Semantic → Structural → Geometry → Visual → Repair loop，输出遵循 `schemas/qa.schema.json`。
+
+详细架构见 `references/v4-architecture.md`。
+
+## Research / Evidence 强制规则
+
+当任务包含任何外部事实或事实图片时必须读取并执行 `workflows/research.md`。
+
+- 首选品牌/机构官方来源；重要决策事实在可行时做第二权威信源交叉验证。
+- 记录 claim → source → slide；事实图片记录 asset → source → slide。
+- 对矛盾信源主动报告，不自行圆掉。
+- 生成图片仅用于创意概念，不得冒充真实产品、真实联名、真实人物、真实历史案例或事实证据。
+- 时效性主题记录来源发布日期/更新时间和 retrieved_at。
+- 未验证字段不得为了填模板而编造。
+
+## Deck Production 强制流程
+
+凡需要生成或修改 PPTX/Slides，读取 `workflows/deck-production.md`。
+
+1. Brief parser：目的、受众、决策问题、用户约束、must-preserve。
+2. Evidence gate：完成 claims/sources/assets manifests。
+3. Story planner：先建立完整判断链，再切页；每页一个判断。
+4. 生成 `deck_spec.json` 并按 `schemas/deck.schema.json` 校验。
+5. Resolve template/reference：优先 retained/reference PPTX 或宿主模板。
+6. Runtime adapter：按 `workflows/runtime-adapters.md` 选择最强可用 presentation runtime。
+7. Render。
+8. 必须把成品渲染成页面图/PDF，并生成 montage/contact sheet 进行视觉复核。
+9. Semantic / structural / geometry / visual 四层 QA。
+10. 仅修复失败页并重新 render，直到 P0/P1 清零。
+
+## vivo 品牌基线
+
+品牌规范争议的权威层级：VONE / 官方原件 > design-spec rules > deck style > renderer defaults。
+
+高频：
+- 品牌名营销语境统一写 `vivo`。
+- vivo 蓝 `#1E46E6`；深蓝 `#06175E`；浅蓝 `#D1EBFE`。
+- 官方字体规范以当前 vivo VI 原件为准；旧 vivo type 不得继续作为现行规范。
+- logo、联合标识、安全距离、最小尺寸与例外审批均回 `references/design-spec.md` / 原件核验。
+
+## Legacy Markdown → PPTX
+
+旧模板与 `assets/md2pptx_vivo.py` 保留兼容，但不再是新 deck 默认架构。
+
+仅在宿主没有原生 presentation runtime、没有 PptxGenJS 路径、或用户明确要求 legacy Markdown pipeline 时使用：
+
+```bash
+python3 assets/md2pptx_vivo.py input.md output.pptx
+python3 assets/validate_pptx.py output.pptx --md input.md --json
+```
+
+Legacy renderer 也必须遵守 Never-silent-loss：超出支持的表格/布局容量时显式失败，不得切片截断。
+
+## QA Severity
+
+| 等级 | 典型问题 | 交付 |
 |---|---|---|
-| IP联名、IP合作提案、IP价值评估、联名权益/报价、Deal Memo、联名礼盒 | references/ip-collab.md | assets/template-ip-collab.md |
-| 艺人/代言人/名人评估、TGI分析、舆情风险、1+N矩阵、明星合作玩法 | references/celebrity.md | assets/template-celebrity-report.md |
-| 传播方案、campaign、上市传播、RTB、KOL排期、传播作战图、预算分配 | references/campaign.md | assets/template-campaign-plan.md |
-| 品牌视觉、VI、色值、logo/标识规范、设计审查、品牌一致性、邮件签名档、海报/KV 规范 | references/design-spec.md | assets/vivo-design-spec/、references/design-spec-rules.md |
-| 调研洞察、市场趋势、人群画像、候选筛选、数据分析、业务判断 | 本页“输出流水线” | assets/template-research-insight.md |
-| 需要产出pptx（md转pptx、PPT骨架、提案初稿） | 本页"输出流水线" | assets/md2pptx_vivo.py（默认，vivo企业风格）/ md2pptx.py（通用骨架） |
+| P0 Critical | 事实错误、错事实图、静默丢内容、placeholder、关键 logo/品牌违规 | 禁止 |
+| P1 Major | overflow、overlap、不可读、严重裁切、坏表/坏图、证据页缺来源 | 禁止 |
+| P2 Minor | 对齐/间距/字体或色彩轻微偏差 | 应修 |
+| P3 Cosmetic | 可选精修 | 可带说明交付 |
 
-**跨切合规层**：凡涉及视觉交付物（deck、KV、海报、社媒头像、签名档）的任务，无论主模块是哪个，交付前必须走 design-spec 模块的 W3（品牌参数附着）与 W2（合规自查）。
+不得再按“问题页占比”放行 P0/P1。
 
-**组合任务**（hub的核心价值）：新品上市全案 = celebrity模块（选人）+ ip-collab模块（IP搭载）+ campaign模块（传播节奏与预算），design-spec 作为合规基线贯穿三者产出。按依赖顺序串联：先定人与IP（策略输入），再出传播方案（策略输出），各模块产出独立deck或合并deck。
+## 模板确认
 
-**意图模糊时先澄清再动手**：问清任务类型（提案/评估/汇报/审查）、目标产品、决策链上的关键问题，不猜。
-
-**趋势类问题**（品牌年轻化、IP营销趋势）：三个营销模块内均含方法论内核（内容容器四维模型、三阶段演进、双引擎结构），直接引用作答，不必套模板。
-
-### 延伸指令
-
-**深度延伸**（信息不足时逐层下探，不猜）：L0 速查 → L1 模块工作流 → L2 规则细则 → L3 原件页码（3.1 中文 PDF 共 196 页，章节 A–H）→ VONE 在线复核最新版本（id 清单见 design-spec.md W4）。答复注明所据层级。
-
-**方向延伸**：
-- 方案方向：组合任务串联（celebrity → ip-collab → campaign），design-spec W3 附着品牌参数（联合标识比例、色盘、字体排版、PPT 模板参数）；
-- 审查方向：用户提供设计稿/物料 → design-spec W2 合规审查，输出"符合/需调整/偏离"+ 修改对照 + 依据；
-- 查询方向：速查直答（色值/字体/尺寸/比例），带来源标注；
-- 更新方向：怀疑规范有新版本 → design-spec W4 版本核验与更新（VONE id：778=3.1 主规范、779=邮件签名档、468=千镜、361=可持续发展 EN）。
-
-## 速查（vivo VI 3.1，高频）
-
-- 品牌蓝：RGB 30,70,230 / CMYK 99,76,0,0 / Pantone 2728C / #1E46E6；深蓝 RGB 6,23,94（P3591C）；浅蓝 RGB 209,235,254（P657C）；辅助灰 RGB 230,230,230。
-- 字体：vivo Sans（旧 vivo type 已停用）。正文 Regular/Medium，二级标题 Demibold，标题/口号 Bold；主标题字距 -30 行距 1.1x，副标题 -20/1.2x，正文 -20/1.4x。
-- 书写：营销语境品牌名一律全小写 "vivo"。
-- 标识：蓝色字标为标准；安全距离 1.5x（x="o" 高）；最小尺寸线上 38px / 印刷 8mm；默认左上角；九禁见细则 A6。
-- 联合标识：vivo 主场置左；只可用字标；横版分隔线高="o"高、宽="o"宽 2%；安全距离 1.5x；一事一议。
-- 企业 PPT 模板：16:9、微软雅黑——封面标题 40pt、封面副标题 20pt、封面其他 9pt、目录 16pt 行距1.5、章节页 32pt、内页标题 20pt、内页副标题 14pt、内页文本 12pt 行距1.25。
-- 版本基线：3.1 为当前生效版（2025-10 更新）；2.0 已废止；3.0 为旧版禁用。
-
-## 模块工作流
-
-读取路由到的 reference 文件，按其中的步骤化工作流执行。营销三模块共享的方法论内核：
-- 内容容器四维模型：产品能力延伸 / 品牌价值观延伸 / TA需求延伸 / 营销节点重构
-- 三阶段演进：借IP流量 → 借IP内容 → 共同经营
-- 双引擎：广度曝光 + 深度种草，PUSH→PULL
-- 三件要事模式：一套内容 + 一个用户事件 + 一个转化载体
-
-design-spec 模块的方法论内核：一致性四锚点（标识/颜色/字体/排版）、权威层级（VONE > 原件 > 细则 > 速查）、四条工作流（W1 查询 / W2 审查 / W3 附着 / W4 更新）。
-
-## 输出流水线（md → pptx，v3.2）
-
-设计系统：`references/deck-style.md`（提炼自真实 vivo/关联 deck）。v3.2 不再把所有页面强制成蓝标题条+bullet，而是按显式 archetype 与内容密度生成；支持自适应框体、必要时拆页，以及原生 bar/line/doughnut 图表。
-
-1. 按 deck-style.md 的页面类型填充 md 骨架。方言：`# 标题`→封面；`## P{n}｜标题`→slide；`@layout` 显式选择版式；`@chart bar|line|doughnut` 紧随 Markdown 表格生成原生图表；其余 `@sub`、`@source`、`@profile`、`@img`、`@stat`、卡片和备注语法保持兼容。
-2. 转换前核查：P编号连续、单页一级要点≤6、占位符【】清理、敏感数据脱敏、每页标题即论点。
-3. 执行：`python3 assets/md2pptx_vivo.py 输入.md 输出.pptx`（依赖 python-pptx + Pillow；扩展 QA 依赖见 `references/pptx-workflow.md`）。通用非 vivo 场景用旧版 `md2pptx.py`。
-4. 转换后核查（纯代码，不操控任何应用）：页数一致；读回 pptx 校验每页 shape 坐标不越界、文本估算高度不溢出、表格行列数正确、图片与渐变/字标在位、色值落在 profile、来源与语义规则满足要求。
-5. 品牌视觉合规自查（跨切合规层）：色盘/字号须落在对应 profile；含标识/联合标识页核对比例与安全距离；不符项回 design-spec W2/W3 修正。
-6. 交付时告知：pptx 为骨架初稿，视觉终稿（KV/图片/工艺）按 VI 原件人工精修，争议回 L3 原件层。
-
-### PPTX 能力与依赖
-
-本 skill 将 PPTX 作为一等输出格式，支持可编辑文本、表格、形状、图片、speaker notes 和原生基础图表。依赖、PPTX 结构验证、PDF 视觉复核和用户文件只读规则见 `references/pptx-workflow.md`。
-
-## PPT 生成前置确认（强制）
-
-凡用户要求生成或改版 PPTX，**在生成前必须询问并确认使用哪个模板/风格**，不得根据关键词静默猜测。询问时至少提供：
-
-1. `传播方案`：策略框架 → 内容/事件/转化 → 时间线 → 预算 → 风险；
-2. `艺人评估`：筛选口径 → 数据证据 → 候选矩阵 → 风险 → 1+N 组合；
-3. `IP 联名`：IP 文化资产 → 产品连接 → 创意/KV → 权益 → 报价与时间线；
-4. `调研洞察`：市场事实 → 趋势/人群 → 数据筛选 → 洞察模型 → 业务判断；
-5. `自定义模板`：用户提供 `.pptx/.potx` 或明确版式要求。
-
-若用户已明确指定模板，可直接确认后执行；若用户只说“做一份 PPT”，必须先询问模板。模板确认后还要确认：是否使用 vivo house profile、是否有真实图片/数据、是否允许生成待补字段。模板选择记录在本次 deck 的 Markdown 头部（`@profile` 或 meta）和输出说明中。
-
-样张参考：`assets/samples/` 保留历史样张；`assets/samples/v0.2_*.pptx` 为当前 v2.1 renderer 生成的新版样张。历史样张仅用于迁移对比，不代表当前视觉输出。
-
-## 陷阱
-
-- 多模块组合时注意交付物边界：艺人评估报告和传播方案是不同deck，不要混在一套页面里，除非用户明确要求合并。
-- 模板中的【】占位符在最终交付前必须全部替换，转换前核查要专门过一遍。
-- 表格型内容（报价明细、权益清单）转pptx后是纯文本bullet，需提示用户人工改为表格版式。
-- 三个营销模块的触发词有重叠（如"IP联名传播方案"同时命中ip-collab和campaign），以用户的核心交付物判断主模块：要deck就两个都走，先策略后传播。
-- 设计合规陷阱：引用 3.0/2.0 旧数值；用 vivo type；蓝色徽标做单色/反白；联合标识用特殊形式；非版权字体替代品牌字体；把速查/摘录当权威（争议回原件）。
+用户已经明确模板/风格/参考文件时直接执行，不重复询问。只有模板选择会实质改变结果且当前上下文无法判断时才确认。参考文件存在时优先 reference-native，不将其降级成纯色值/字号摘要。
 
 ## 验证
 
-- 路由决策可复述：能一句话说清"这是X类任务，用了X模块，因为X"。
-- 产出的deck通过流水线双重核查（md侧结构+pptx侧读回），且跨切合规层自查留痕（配色/字体参数/标识页核对）。
-- 组合任务各模块的产出互相引用一致（同一艺人/IP名称、同一时间线）。
-- 设计合规答复带来源层级标注（速查/细则/原件页码/VONE）；审查结论逐条对应四锚点并附修改建议。
+最终交付至少满足：
+- 关键事实可追溯到 evidence manifest；
+- factual image 可追溯且语义匹配；
+- 用户 must-preserve 内容完整；
+- deck 判断链前后一致；
+- 无静默数据丢失；
+- P0/P1 = 0；
+- 已完成实际渲染后的视觉复核，而非仅解析 PPTX XML；
+- 视觉交付通过 design-spec 合规检查。
