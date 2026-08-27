@@ -7,6 +7,34 @@
 ### Added
 - （待添加）
 
+## [v4.1.1] - 2026-08-27
+
+### Added
+- Universal Source-to-Deck 主流程：DOCX / XLSX / PPTX / PDF / CSV → source inventory / content units → evidence / synthesis → deck spec / coverage → vivo PPTX → render / QA / repair。
+- 新增 `source.schema.json`、`content-unit.schema.json`、`coverage.schema.json`、`template.schema.json`，补齐输入摄取、内容保真与模板解析契约。
+- 新增 Word/Excel/PPT/PDF/CSV fallback ingestion，并保留表格、公式、PPT notes/chart、嵌入图片与来源 locator。
+- 新增 exhaustive Coverage Gate，逐个 `UNIT` 追踪 body / appendix / summarized / intentionally-excluded / missing。
+- 新增 vivo `template-manifest.json`、`layout-map.json` 与 story archetype registry，将故事结构与视觉模板彻底分离。
+- 新增可执行 PptxGenJS fallback runtime、PDF/PNG/montage 真实渲染与 render integrity QA。
+- 新增 Source-to-Deck、Coverage、PPTX no-silent-loss、真实渲染等 CI 回归测试。
+
+### Changed
+- `SKILL.md` 主目标升级为通用 vivo Source-to-Deck，而不是 IP/艺人/Campaign 模板路由或 Markdown → PPTX。
+- IP、艺人、Campaign、VI 模块降为可选领域增强层，不再拥有 renderer 或独立视觉模板。
+- PPTX 输入默认作为 content-source；只有显式声明时才作为 style-reference / mixed。
+- Presentation runtime 优先级调整为 native Presentations / PowerPoint → Artifact → PptxGenJS → legacy python-pptx。
+- 真实 vivo master/reference 优先于 fallback style guide；partner 色只允许作为已验证 accent。
+- Research 增加 confidentiality gate、entity resolution、官方优先、freshness 与 factual-image verification。
+
+### Fixed
+- 修复表格/比较/时间线/长正文在 renderer 中可能被静默截断的问题，改为 continuation slides / chunking。
+- 修复 manifest schema 根目录解析错误。
+- 修复任意图片都可能被当作 vivo logo 的弱校验。
+- 修复最终 PPTX 可能保留 external linked image 的风险；外链事实图片现在为 P0。
+- 修复源文件图片只读文字、不保留图片本体的问题。
+- 修复 source manifest 记录本地绝对路径的隐私/可移植性问题。
+- 修复 release workflow 在版本修改中途提前创建 tag 的问题。
+
 ## [v4.0.0] - 2026-08-27
 
 ### Added
@@ -39,6 +67,7 @@
 
 ---
 
-[Unreleased]: https://github.com/blackkcold/brand-marketing-hub/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/blackkcold/brand-marketing-hub/compare/v4.1.1...HEAD
+[v4.1.1]: https://github.com/blackkcold/brand-marketing-hub/compare/v4.0.0...v4.1.1
 [v4.0.0]: https://github.com/blackkcold/brand-marketing-hub/compare/v3.2.0...v4.0.0
 [v3.2.0]: https://github.com/blackkcold/brand-marketing-hub/releases/tag/v3.2.0
