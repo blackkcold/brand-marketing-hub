@@ -119,17 +119,36 @@ def picture_hash(shape):
     try:return sha256_bytes(shape.image.blob)
     except Exception:return None
 
-def has_known_logo(prs):
+def is_vivo_signal(shape,known_hash=None):
+    if known_hash and picture_hash(shape)==known_hash:
+        return True
+    text=shape_text(shape).strip().lower()
+    if text=="vivo":
+        return True
+    try:
+        name=(shape.name or "").strip().lower()
+        if "vivo" in name and ("logo" in name or "wordmark" in name):
+            return True
+    except Exception:
+        pass
+    return False
+
+def has_brand_signal(prs):
     known=file_sha256(KNOWN_LOGO)
-    if not known:return False
-    for slide in prs.slides:
-        for sh in slide.shapes:
-            if picture_hash(sh)==known:return True
+    # Cover and masters are the strongest deterministic brand locations.
+    if prs.slides:
+        for sh in prs.slides[0].shapes:
+            if is_vivo_signal(sh,known): return True
     try:
         for master in prs.slide_masters:
             for sh in master.shapes:
-                if picture_hash(sh)==known:return True
-    except Exception:pass
+                if is_vivo_signal(sh,known): return True
+    except Exception:
+        pass
+    # Some generated decks place the wordmark only on an end slide.
+    for slide in prs.slides[1:]:
+        for sh in slide.shapes:
+            if is_vivo_signal(sh,known): return True
     return False
 
 def bbox_in(shape):
@@ -188,9 +207,9 @@ def validate(pptx_path,md_path=None,template_manifest=None):
             if p["layout"] in ("stats","evidence-grid") and not p["source"]:
                 issues.append(issue("source_missing",page=page))
 
-    logo_present=has_known_logo(prs)
-    if not logo_present and len(prs.slide_masters)<2:
-        issues.append(issue("logo_missing",message="No known embedded vivo wordmark found; master/reference branding must be visually verified."))
+    logo_present=has_brand_signal(prs)
+    if not logo_present:
+        issues.append(issue("logo_missing",message="No deterministic vivo wordmark/brand signal found in cover, masters, or slides."))
 
     for idx,slide in enumerate(prs.slides):
         slide_no=idx+1; cover_or_end=idx in (0,len(prs.slides)-1); has_page=False
