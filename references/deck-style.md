@@ -1,6 +1,6 @@
 # vivo 2026 内部 deck 设计系统（legacy style guide）
 
-> **v4 定位：**本文件继续作为 vivo 视觉原则、legacy renderer 与无 reference 场景的 fallback 指南；它不再是新演示文稿的模板 source of truth。存在真实 PPTX/POTX/master/reference deck 时，应优先复用其原生 master、layout、theme、geometry 和 recurring chrome。完整 v4 流程见 `workflows/deck-production.md` 与 `workflows/runtime-adapters.md`。
+> **v4.1 定位：**本文件继续作为 vivo 视觉原则、legacy renderer 与无 reference 场景的 fallback 指南；它不再是新演示文稿的模板 source of truth。存在真实 PPTX/POTX/master/reference deck 时，应优先复用其原生 master、layout、theme、geometry 和 recurring chrome。完整 v4.1 流程见 `workflows/deck-production.md` 与 `workflows/runtime-adapters.md`。
 >
 > 本文件提炼自 8 份真实 vivo/关联 deck。品牌权威层级仍为：VI 官方原件 > retained/reference deck（针对其版式） > 本文件 > legacy renderer 默认值。
 
@@ -36,9 +36,9 @@
 - 图注/页脚/密级：9pt。
 - 标题层级只靠字号、bold、蓝色 title label 拉开，不使用花哨字体、不混用 campaign 主题字体。
 
-## 2. Renderer 支持的 Markdown 方言
+## 2. Legacy Renderer 支持的 Markdown 方言
 
-`assets/md2pptx_vivo.py` 当前支持以下指令。模板只能使用这些结构；若新增语义，必须写成备注或普通文本，不能假装 renderer 会识别。
+以下内容**仅适用于 legacy Markdown compatibility path**。`assets/md2pptx_vivo.py` 当前支持以下指令。模板只能使用这些结构；若新增语义，必须写成备注或普通文本，不能假装 renderer 会识别。
 
 | 写法 | 渲染结果 | 使用边界 |
 |---|---|---|
