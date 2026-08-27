@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/source.schema.json",
+  "title": "Source Inventory",
+  "type": "object",
+  "required": [
+    "version",
+    "sources"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.1"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "kind",
+          "display_name",
+          "origin",
+          "confidentiality"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^FILE-[0-9]{3,}$"
+          },
+          "kind": {
+            "enum": [
+              "docx",
+              "xlsx",
+              "pptx",
+              "pdf",
+              "csv",
+              "image",
+              "google-docs",
+              "google-sheets",
+              "google-slides",
+              "web",
+              "other"
+            ]
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "origin": {
+            "enum": [
+              "user-upload",
+              "library",
+              "connected-app",
+              "web",
+              "generated"
+            ]
+          },
+          "mime_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidentiality": {
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ]
+          },
+          "role": {
+            "enum": [
+              "content-source",
+              "style-reference",
+              "data-source",
+              "evidence-source",
+              "mixed"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
