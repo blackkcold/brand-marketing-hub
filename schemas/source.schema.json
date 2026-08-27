@@ -20,7 +20,8 @@
           "kind",
           "display_name",
           "origin",
-          "confidentiality"
+          "confidentiality",
+          "role"
         ],
         "properties": {
           "source_id": {
