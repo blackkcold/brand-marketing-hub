@@ -158,7 +158,10 @@
                     "logo"
                   ]
                 }
-              }
+              },
+              "required": [
+                "visual_role"
+              ]
             },
             "then": {
               "properties": {
@@ -198,6 +201,9 @@
                     }
                   }
                 }
+              ],
+              "required": [
+                "embedded_required"
               ]
             }
           },
@@ -207,7 +213,10 @@
                 "factual_evidence_allowed": {
                   "const": true
                 }
-              }
+              },
+              "required": [
+                "factual_evidence_allowed"
+              ]
             },
             "then": {
               "properties": {
