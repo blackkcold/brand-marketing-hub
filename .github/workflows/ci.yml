@@ -55,5 +55,5 @@ jobs:
       - name: Render PPTX and create montage
         run: |
           python assets/render_pptx.py /tmp/v4.1-runtime.pptx --out-dir /tmp/v4.1-render
-          test -s /tmp/v4.1-render/montage.png
+          python assets/validate_render.py /tmp/v4.1-render --json
           test -s /tmp/v4.1-render/v4.1-runtime.pdf
