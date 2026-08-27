@@ -7,29 +7,38 @@
 ### Added
 - （待添加）
 
+## [v4.0.0] - 2026-08-27
+
+### Added
+- v4 五层架构：Domain / Evidence / Story / Presentation Runtime / QA。
+- `workflows/research.md`：官方优先的 Research & Evidence 工作流。
+- `workflows/deck-production.md`：deck_spec 驱动的演示文稿生产与 repair loop。
+- `workflows/runtime-adapters.md`：ChatGPT Presentations / PowerPoint / Artifact / PptxGenJS / legacy Python 的 runtime 选择协议。
+- `schemas/evidence.schema.json`、`asset.schema.json`、`deck.schema.json`、`qa.schema.json`。
+- `references/v4-architecture.md`。
+- QA severity：P0/P1 阻断交付，不再按问题页比例放行。
+
+### Changed
+- `deck_spec.json` 成为新演示文稿 source of truth；Markdown 降为 human-readable projection / legacy input。
+- reference/master/template-native workflow 成为默认，固定坐标重画模板不再是首选。
+- `python-pptx` renderer 降级为 legacy fallback / readback / validation。
+- 外部事实、真实案例、产品与事实图片进入 deck 前必须建立可追溯 evidence/asset 记录。
+
+### Fixed
+- 禁止 legacy renderer 静默截断超出容量的表格行列。
+- validator 改为基于 severity 的 delivery gate。
+
 ## [v3.2.0] - 2026-08-27
 
 ### Added
-- 内容类型驱动的 Markdown → PPTX 输出流水线（v3.2）：按显式 archetype 与内容密度生成，支持自适应框体、必要时拆页。
-- 原生可编辑图表：柱状图、折线图、环图。
-- 新增页面布局 archetype：`stats`、`framework`、`comparison`、`matrix`、`timeline`、`budget`、`collage`、`case-study`、`chart`。
-- 四套独立模板：传播方案、艺人评估、IP 联名、调研洞察，不再共用同一套页面节奏。
-- 新增调研洞察模板 `assets/template-research-insight.md` 与创作者品牌合作模板 `assets/creator-brand-partnership-vivo.md`。
-- 新增 archetype 测试 `assets/tests/test_archetypes.py`。
-- 新增 `references/pptx-workflow.md`：PPTX 能力、依赖、结构验证与视觉 QA 流程。
-- 可选 XML 安全依赖：`defusedxml`、`lxml`。
+- 内容类型驱动的 Markdown → PPTX 输出流水线（v3.2）：按显式 archetype 与内容密度生成。
+- 原生可编辑柱状图、折线图、环图与多种页面 archetype。
 
 ### Changed
-- 重构 `assets/md2pptx_vivo.py`：从统一蓝标题条 + bullet 改为 archetype 驱动渲染。
-- 重构 `assets/validate_pptx.py`：品牌输出验证器升级。
-- 升级传播方案、艺人评估、IP 联名三套模板。
-- 更新 `references/deck-style.md` 设计系统说明。
-- 生成产物（`output/`）与本地备份（`.SKILL.md.bak`）移出仓库跟踪。
-
-### Fixed
-- 生成前必须确认模板，避免默认套用错误模板。
+- 从统一蓝标题条 + bullet 改为 archetype 驱动渲染。
 
 ---
 
-[Unreleased]: https://github.com/blackkcold/brand-marketing-hub/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/blackkcold/brand-marketing-hub/compare/v4.0.0...HEAD
+[v4.0.0]: https://github.com/blackkcold/brand-marketing-hub/compare/v3.2.0...v4.0.0
 [v3.2.0]: https://github.com/blackkcold/brand-marketing-hub/releases/tag/v3.2.0
