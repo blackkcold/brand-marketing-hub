@@ -10,7 +10,7 @@
 - CI 增加 runtime 高危依赖审计。
 
 ### Changed
-- fallback runtime 切换到安全加固的 `@neo-ma/pptxgenjs`，并保持 upstream PptxGenJS API 兼容路径。
+- fallback runtime 切换到经 CI 验证的 `@lofcz/pptxgenjs 4.1.17`，并保持 PptxGenJS API 兼容路径。
 - Release 改为仅在 main 的 CI 成功后执行；未存在对应版本 Changelog section 时自动跳过。
 - deck block / chart / comparison / timeline schema 改为严格 typed contract。
 
