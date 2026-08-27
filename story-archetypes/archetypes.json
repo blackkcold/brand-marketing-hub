@@ -1,0 +1,98 @@
+{
+  "version": "4.1",
+  "archetypes": {
+    "research": {
+      "beats": [
+        "decision-question",
+        "source-facts",
+        "external-evidence",
+        "insight",
+        "comparison",
+        "recommendation",
+        "next-step",
+        "appendix"
+      ]
+    },
+    "strategy": {
+      "beats": [
+        "context",
+        "problem",
+        "principles",
+        "options",
+        "tradeoffs",
+        "recommendation",
+        "roadmap",
+        "appendix"
+      ]
+    },
+    "campaign": {
+      "beats": [
+        "business-problem",
+        "rtb",
+        "audience",
+        "strategy",
+        "creative-system",
+        "channel-plan",
+        "timeline",
+        "budget",
+        "risk",
+        "next-step"
+      ]
+    },
+    "brand-partnership": {
+      "beats": [
+        "objective",
+        "selection-logic",
+        "candidate-evidence",
+        "case-studies",
+        "collaboration-plays",
+        "synthesis",
+        "recommendation",
+        "rights-and-commercials",
+        "next-step",
+        "appendix"
+      ]
+    },
+    "business-review": {
+      "beats": [
+        "executive-summary",
+        "scorecard",
+        "drivers",
+        "wins",
+        "gaps",
+        "decisions",
+        "next-period-plan",
+        "risks",
+        "appendix"
+      ]
+    },
+    "project-update": {
+      "beats": [
+        "objective",
+        "status",
+        "progress",
+        "issues",
+        "decisions-needed",
+        "next-step",
+        "timeline",
+        "appendix"
+      ]
+    },
+    "proposal": {
+      "beats": [
+        "context",
+        "opportunity",
+        "approach",
+        "scope",
+        "proof",
+        "commercials",
+        "timeline",
+        "risks",
+        "decision"
+      ]
+    },
+    "custom": {
+      "beats": []
+    }
+  }
+}
