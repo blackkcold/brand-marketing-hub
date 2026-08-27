@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/qa.schema.json",
+  "title": "Brand Marketing Hub QA Report",
+  "type": "object",
+  "required": [
+    "version",
+    "status",
+    "issues"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.0"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "pass-with-cosmetic-notes"
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "severity",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "slide_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "repair_hint": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "semantic": {
+          "type": "boolean"
+        },
+        "structural": {
+          "type": "boolean"
+        },
+        "geometry": {
+          "type": "boolean"
+        },
+        "visual": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
