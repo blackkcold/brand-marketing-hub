@@ -1,6 +1,6 @@
 # IP联名合作方法论（模块：ip-collab）
 
-> 本模块属于 brand-marketing-hub。配套模板：`~/.vbuddy/skills/brand-marketing-hub/assets/template-ip-collab.md`
+> 本模块属于 brand-marketing-hub。配套模板：`assets/template-ip-collab.md`（仅作 story archetype 参考，不是视觉模板）
 
 ## 方法论内核（源自品牌与IP营销趋势研究）
 
@@ -29,7 +29,7 @@
 5. 权益汇总表：合作产品型号、合作市场范围、授权销售期（典型6个月）、品类排他（典型销售期前后各3个月）、礼盒形式（非INBOX、周边SKU上限）、定制内容清单（定制形象/图库等）、社媒互动资源。
 6. 报价测算：授权金（通常=手机GMV×版权金费率，3C常规7%，可谈至3%）+ 引流周边成本价×15% + 定制费 + 周边成本 + 服务费（典型10%）+ 税（典型6%）。给出两档方案供选择。
 7. 必要条件与时间线：IP方要求的必要资源（明星挂名、时尚杂志、门店包店、媒体资源）写入Deal Memo；倒排时间线（DM签署→定制Brief→初稿→定稿→合同→上线），标注关键deadline提醒。
-8. 输出：套用模板填充为md → 走 hub SKILL.md 的输出流水线转pptx。
+8. 输出：只产出 IP/品牌合作领域判断、权益、报价口径、案例与建议结构，交回 Source-to-Deck 的 synthesis/deck_spec。**本模块不得直接生成 Markdown deck、不得选择 renderer、不得创建独立视觉模板。**
 
 ## 陷阱
 
