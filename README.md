@@ -208,7 +208,12 @@ Produces:
 - per-slide PNGs
 - `montage.png`
 
-Visual QA checks actual rendered slides, not only PPTX XML.
+Render integrity gate:
+```bash
+python assets/validate_render.py render --json
+```
+
+Visual QA then inspects the actual rendered slides, not only PPTX XML.
 
 ## 8. PPTX Delivery Gate
 
