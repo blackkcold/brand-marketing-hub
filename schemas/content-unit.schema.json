@@ -80,6 +80,14 @@
               "image": {
                 "type": "integer",
                 "minimum": 1
+              },
+              "shape_path": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minItems": 1
               }
             },
             "additionalProperties": false
