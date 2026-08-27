@@ -1,27 +1,33 @@
-# v4 Presentation Runtime Adapters
+# v4.1 Presentation Runtime Adapters
 
 ## Selection principle
-brand-marketing-hub owns domain intelligence, evidence, story structure and brand QA. It should not reimplement a full presentation engine when a native presentation runtime is available.
+brand-marketing-hub owns source understanding, research, synthesis, deck semantics and vivo QA. Rendering should use the strongest available presentation engine.
 
-## 1. ChatGPT Presentations / PowerPoint
-Preferred for interactive creation or editing of real decks, especially when the user supplies a reference deck/template. Preserve masters, layouts, theme, recurring chrome, typography and editable objects. Use reference-backed templates where possible.
+## 1. Host-native Presentations / PowerPoint
+Preferred for reference/master-native generation and revision. See `runtime/openai-presentations.md` and `runtime/powerpoint.md`.
 
-## 2. OpenAI artifact/presentation runtime
-Preferred for native presentation generation in ChatGPT when supported. Feed the validated deck spec, evidence pack and retained template/reference.
+## 2. Artifact presentation runtime
+Preferred for structured master/theme-aware generation or precise edits when available. See `runtime/artifact-tool.md`.
 
 ## 3. PptxGenJS
-Preferred deterministic CLI/server fallback for new generation where native OpenAI presentation runtime is unavailable. Build adaptive layout helpers and render/measure loops; do not port the current fixed-coordinate renderer unchanged.
+Executable deterministic fallback:
+```bash
+npm install
+node runtime/pptxgenjs/render.js deck_spec.json output.pptx assets.json brand/vivo/template-manifest.json
+```
+It is a fallback, not a substitute for a real vivo master/reference.
 
 ## 4. Legacy python-pptx
-Compatibility fallback only. It may be used for readback, validation, lightweight patches, extraction and legacy generation. New visual capabilities should not default here.
+Compatibility only: readback, validation, lightweight patching and old Markdown generation.
 
 ## Runtime output contract
-Every runtime must produce:
-- editable PPTX where technically possible;
-- a render for visual QA;
-- QA report;
-- provenance link between slide -> claim -> source and slide -> asset;
-- no P0/P1 outstanding issues.
+Every runtime must yield:
+- editable PPTX where possible;
+- no silent content loss;
+- all factual images embedded;
+- source/claim/asset provenance preserved outside or inside the deck metadata;
+- a real render for visual QA;
+- no P0/P1 outstanding.
 
-## Template fidelity
-When a retained reference/master deck exists, clone/import and reuse its native layouts rather than reconstructing them from a prose style guide.
+## Revision
+Prefer inspecting and patching existing slides/objects. Do not regenerate the whole deck for a local revision when stable slide/object editing is available.
