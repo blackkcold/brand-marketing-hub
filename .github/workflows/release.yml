@@ -1,10 +1,9 @@
 name: Auto Release
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - CHANGELOG.md
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -12,11 +11,26 @@ permissions:
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Resolve release commit
+        id: commit
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tested commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.commit.outputs.sha }}
           fetch-depth: 0
 
       - name: Resolve version
@@ -31,17 +45,21 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Require matching changelog section
+      - name: Detect releasable changelog section
+        id: releasable
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if ! grep -Fq "## [$TAG]" CHANGELOG.md; then
-            echo "CHANGELOG.md must contain a section for $TAG before release" >&2
-            exit 1
+          if grep -Fq "## [$TAG]" CHANGELOG.md; then
+            echo "yes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No CHANGELOG release section for $TAG; skipping release."
+            echo "yes=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Prepare release notes
+        if: steps.releasable.outputs.yes == 'true'
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -53,19 +71,36 @@ jobs:
           ' CHANGELOG.md > release-notes.md
           test -s release-notes.md
 
-      - name: Create tag if missing
+      - name: Verify tag immutability
+        if: steps.releasable.outputs.yes == 'true'
+        id: existing
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
+          TESTED_SHA=$(git rev-parse HEAD)
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists; release workflow will not move an existing tag"
+            TAG_SHA=$(git ls-remote --tags origin "refs/tags/$TAG" | awk '{print $1}')
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            if [ "$TAG_SHA" != "$TESTED_SHA" ]; then
+              echo "Tag $TAG already points to $TAG_SHA, tested commit is $TESTED_SHA. Refusing to move tag." >&2
+              exit 1
+            fi
           else
-            git tag "$TAG" "$GITHUB_SHA"
-            git push origin "$TAG"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Create immutable tag
+        if: steps.releasable.outputs.yes == 'true' && steps.existing.outputs.exists == 'false'
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git tag "$TAG" "$(git rev-parse HEAD)"
+          git push origin "$TAG"
+
       - name: Create GitHub Release if missing
+        if: steps.releasable.outputs.yes == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -74,5 +109,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists"
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md
+            gh release create "$TAG" --target "$(git rev-parse HEAD)" --title "$TAG" --notes-file release-notes.md
           fi
