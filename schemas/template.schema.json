@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/template.schema.json",
+  "title": "Presentation Template Manifest",
+  "type": "object",
+  "required": [
+    "version",
+    "template_id",
+    "brand",
+    "visual_template",
+    "reference_policy",
+    "allowed_palettes"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.1"
+    },
+    "template_id": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "visual_template": {
+      "type": "string"
+    },
+    "reference_policy": {
+      "enum": [
+        "required",
+        "preferred",
+        "fallback-only"
+      ]
+    },
+    "canonical_reference": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "artifact_template_slug": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "allowed_fonts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_palettes": {
+      "type": "object"
+    },
+    "partner_accent_policy": {
+      "enum": [
+        "forbid",
+        "allow-verified-brand-colors",
+        "allow-specified"
+      ]
+    },
+    "layout_map": {
+      "type": "string"
+    },
+    "fallback_style_guide": {
+      "type": "string"
+    },
+    "final_delivery_requires_reference": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}
