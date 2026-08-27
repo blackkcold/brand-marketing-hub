@@ -1,0 +1,74 @@
+{
+  "version": "4.1",
+  "visual_template": "vivo-house",
+  "principles": {
+    "canvas": "16:9",
+    "default_density": "executive",
+    "title_alignment": "left",
+    "body_alignment": "left",
+    "avoid": [
+      "decorative-underlines",
+      "dense-wall-of-text",
+      "fake-3d",
+      "heavy-shadows",
+      "arbitrary-gradient-cards"
+    ],
+    "prefer": [
+      "white-space",
+      "clear-hierarchy",
+      "editable-native-objects",
+      "large-real-imagery",
+      "restrained-vivo-blue-chrome"
+    ]
+  },
+  "roles": {
+    "cover": [
+      "reference-cover",
+      "minimal-brand-cover"
+    ],
+    "section": [
+      "reference-section",
+      "large-number-section"
+    ],
+    "executive-summary": [
+      "3-5-key-judgments",
+      "tagged-recommendations"
+    ],
+    "stats": [
+      "large-stat-grid",
+      "stat-plus-proof"
+    ],
+    "comparison": [
+      "two-column",
+      "multi-brand-logo-grid",
+      "scorecard"
+    ],
+    "table": [
+      "native-table",
+      "table-plus-callout"
+    ],
+    "chart": [
+      "chart-plus-takeaway",
+      "chart-plus-context"
+    ],
+    "case-study": [
+      "hero-image-plus-proof",
+      "image-grid-plus-takeaway"
+    ],
+    "recommendation": [
+      "recommendation-stack",
+      "recommendation-plus-next-step"
+    ],
+    "appendix": [
+      "compact-reference",
+      "source-table"
+    ]
+  },
+  "selection_rules": [
+    "Use slide intent and content block types before choosing geometry.",
+    "Prefer one dominant visual idea per slide.",
+    "If a reference/master deck provides an equivalent layout, use it before fallback roles.",
+    "Do not use a new accent color unless it is a verified partner brand color or explicitly specified.",
+    "If content cannot fit at readable size, split the slide; never squeeze below template minimums."
+  ]
+}
