@@ -1,3 +1,5 @@
+> **v4.1 LEGACY STORY REFERENCE ONLY** — 仅保留用于迁移/叙事参考；不得作为视觉模板、不得直接驱动新 PPT renderer。新项目使用 `story-archetypes/archetypes.json` + `deck_spec.json` + vivo visual template。
+
 # 2026【产品/事件】传播方案
 <!-- deck: 【产品】×【节点/合作方】 · 从声量到转化的整合传播 -->
 <!-- deck: meta: 【部门】｜【YYYY.MM.DD】｜内部资料 -->
