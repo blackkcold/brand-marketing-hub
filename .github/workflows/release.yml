@@ -3,6 +3,9 @@ name: Auto Release
 on:
   push:
     branches: [main]
+    paths:
+      - CHANGELOG.md
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,19 +31,27 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Require matching changelog section
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if ! grep -Fq "## [$TAG]" CHANGELOG.md; then
+            echo "CHANGELOG.md must contain a section for $TAG before release" >&2
+            exit 1
+          fi
+
       - name: Prepare release notes
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           awk -v tag="$TAG" '
-            $0 == "## [" tag "] - 2026-08-27" {capture=1; next}
+            index($0, "## [" tag "]") == 1 {capture=1; next}
             capture && /^## \[/ {exit}
             capture {print}
           ' CHANGELOG.md > release-notes.md
-          if [ ! -s release-notes.md ]; then
-            printf 'Release %s\n' "$TAG" > release-notes.md
-          fi
+          test -s release-notes.md
 
       - name: Create tag if missing
         shell: bash
@@ -48,7 +59,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists"
+            echo "$TAG already exists; release workflow will not move an existing tag"
           else
             git tag "$TAG" "$GITHUB_SHA"
             git push origin "$TAG"
@@ -63,8 +74,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists"
           else
-            gh release create "$TAG" \
-              --target "$GITHUB_SHA" \
-              --title "$TAG" \
-              --notes-file release-notes.md
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md
           fi
