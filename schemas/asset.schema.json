@@ -164,8 +164,32 @@
               "properties": {
                 "semantic_verified": {
                   "const": true
+                },
+                "verification": {
+                  "enum": [
+                    "verified",
+                    "user-provided"
+                  ]
                 }
-              }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "source_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "source_url": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
             }
           },
           {
