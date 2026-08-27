@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/content-unit.schema.json",
+  "title": "Normalized Content Units",
+  "type": "object",
+  "required": [
+    "version",
+    "units"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.1"
+    },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "unit_id",
+          "source_id",
+          "unit_type",
+          "locator",
+          "content",
+          "preserve_mode"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "pattern": "^UNIT-[0-9]{4,}$"
+          },
+          "source_id": {
+            "type": "string",
+            "pattern": "^FILE-[0-9]{3,}$"
+          },
+          "unit_type": {
+            "enum": [
+              "paragraph",
+              "heading",
+              "table",
+              "cell-range",
+              "slide-text",
+              "slide-table",
+              "slide-chart",
+              "speaker-notes",
+              "pdf-page",
+              "image",
+              "metadata"
+            ]
+          },
+          "locator": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "paragraph": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "table": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sheet": {
+                "type": "string"
+              },
+              "range": {
+                "type": "string"
+              },
+              "slide": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "shape": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "content": {},
+          "preserve_mode": {
+            "enum": [
+              "exact",
+              "semantic",
+              "summarize-ok",
+              "optional"
+            ]
+          },
+          "importance": {
+            "enum": [
+              "critical",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
+          "formulae": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
