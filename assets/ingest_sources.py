@@ -178,6 +178,14 @@ def ingest_xlsx(path:Path,source_id:str,b:UnitBuilder):
                   preserve_mode="semantic",importance="normal",
                   notes="Workbook chart metadata; underlying values remain preserved in cell-range units.")
 
+def _walk_pptx_shapes(shapes,path=()):
+    for sh in shapes:
+        current=path+(sh.shape_id,)
+        if sh.shape_type==MSO_SHAPE_TYPE.GROUP:
+            yield from _walk_pptx_shapes(sh.shapes,current)
+        else:
+            yield sh,current
+
 def ingest_pptx(path:Path,source_id:str,b:UnitBuilder):
     prs=Presentation(path)
     master_meta=[]
@@ -195,13 +203,14 @@ def ingest_pptx(path:Path,source_id:str,b:UnitBuilder):
           notes="PPTX presentation/master inventory; native runtime should inspect full theme/master when this source is a style-reference.")
     for si,slide in enumerate(prs.slides,1):
         texts=[]
-        for sh in slide.shapes:
+        for sh,shape_path in _walk_pptx_shapes(slide.shapes):
+            locator={"slide":si,"shape":sh.shape_id,"shape_path":list(shape_path)}
             if getattr(sh,"has_text_frame",False):
                 txt=sh.text_frame.text.strip()
-                if txt:texts.append({"shape":sh.shape_id,"text":txt})
+                if txt:texts.append({"shape":sh.shape_id,"shape_path":list(shape_path),"text":txt})
             if getattr(sh,"has_table",False):
                 rows=[[cell.text for cell in row.cells] for row in sh.table.rows]
-                b.add(source_id,"slide-table",{"slide":si,"shape":sh.shape_id},
+                b.add(source_id,"slide-table",locator,
                       {"rows":rows},preserve_mode="semantic",importance="high")
             if getattr(sh,"has_chart",False):
                 chart=sh.chart; series=[]
@@ -211,13 +220,13 @@ def ingest_pptx(path:Path,source_id:str,b:UnitBuilder):
                         series.append({"name":getattr(s,"name",None),"values":vals})
                 except Exception:
                     pass
-                b.add(source_id,"slide-chart",{"slide":si,"shape":sh.shape_id},
+                b.add(source_id,"slide-chart",locator,
                       {"chart_type":str(chart.chart_type),"series":series},
                       preserve_mode="semantic",importance="high")
             if sh.shape_type==MSO_SHAPE_TYPE.PICTURE:
                 try:
                     image=sh.image
-                    b.add_image(source_id,{"slide":si,"shape":sh.shape_id},image.blob,image.ext,
+                    b.add_image(source_id,locator,image.blob,image.ext,
                                 image.content_type,importance="normal",
                                 notes="Embedded PPTX picture.")
                 except Exception:
