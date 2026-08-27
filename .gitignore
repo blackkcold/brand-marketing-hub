@@ -13,3 +13,8 @@ output/
 
 # 本地备份文件。
 .SKILL.md.bak
+
+node_modules/
+source_bundle/
+render/
+npm-debug.log*
