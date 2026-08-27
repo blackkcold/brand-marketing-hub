@@ -1,16 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/qa.schema.json",
-  "title": "Brand Marketing Hub QA Report",
+  "title": "Brand Marketing Hub QA Report v4.1",
   "type": "object",
   "required": [
     "version",
     "status",
-    "issues"
+    "issues",
+    "gates"
   ],
   "properties": {
     "version": {
-      "const": "4.0"
+      "const": "4.1"
     },
     "status": {
       "enum": [
@@ -41,7 +42,22 @@
             "type": "string"
           },
           "slide_id": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "asset_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "message": {
             "type": "string"
@@ -55,8 +71,26 @@
     },
     "gates": {
       "type": "object",
+      "required": [
+        "coverage",
+        "semantic",
+        "embedded_assets",
+        "template_fidelity",
+        "structural",
+        "geometry",
+        "visual"
+      ],
       "properties": {
+        "coverage": {
+          "type": "boolean"
+        },
         "semantic": {
+          "type": "boolean"
+        },
+        "embedded_assets": {
+          "type": "boolean"
+        },
+        "template_fidelity": {
           "type": "boolean"
         },
         "structural": {
@@ -70,6 +104,45 @@
         }
       },
       "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "pptx": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pdf": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slide_png_dir": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "montage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverage_summary": {
+      "type": "object"
+    },
+    "template_id": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "additionalProperties": false
