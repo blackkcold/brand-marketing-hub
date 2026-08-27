@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""vivo 2026 Markdown -> PPTX renderer.
+"""Legacy vivo Markdown -> PPTX renderer.
 
-The renderer is intentionally content-led: the Markdown layout directive selects
-an archetype instead of forcing every page into a blue title bar + bullets page.
-Old syntax remains supported for backwards compatibility.
+v4 keeps this renderer for backwards compatibility, readback and fallback only.
+New presentation work should prefer a native presentation runtime or PptxGenJS
+with deck_spec.json. This renderer must never silently truncate user content.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ TABLE_ALT = 'F2F7FF'
 LOGO = Path(__file__).resolve().parent / 'vivo-deck' / 'vivo_wordmark_white.png'
 HOUSE_TEMPLATE = Path(os.environ.get(
     'VIVO_PPT_TEMPLATE',
-    '/Users/11169285/Library/CloudStorage/OneDrive-个人/桌面/vivo/产品 - 品牌营销/vivo PPT模版_20230727-20250325.pptx',
+    str(Path(__file__).resolve().parent / 'vivo-deck' / 'vivo-house-template.pptx'),
 ))
 OVERFLOW_WARNINGS: list[str] = []
 
@@ -395,7 +395,13 @@ def framework(slide, page):
 
 def table(slide, page):
     title(slide, page); rows = page['table'] or [['项目', '内容'], *[[t, '待补'] for _, t in page['bullets']]]
-    cols = max(len(r) for r in rows); rows = [r + [''] * (cols - len(r)) for r in rows]; rows = rows[:10]; cols = min(cols, 6)
+    cols = max(len(r) for r in rows)
+    if len(rows) > 10 or cols > 6:
+        raise ValueError(
+            f'P{page["no"]}「{page["title"]}」表格超出 legacy renderer 容量: '
+            f'{len(rows)} 行 × {cols} 列；v4 禁止静默截断，请由上游拆页或选择自适应 presentation runtime。'
+        )
+    rows = [r + [''] * (cols - len(r)) for r in rows]
     x, y, w, h = .58, 1.45, 12.18, min(5.25, .46 * len(rows) + .2)
     shape = slide.shapes.add_table(len(rows), cols, Inches(x), Inches(y), Inches(w), Inches(h)); tbl = shape.table
     widths = [w / cols] * cols
