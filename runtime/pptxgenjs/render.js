@@ -116,7 +116,9 @@ function makeCover(){
   slide.background={color:BLUE};
   slide.addText(spec.deck.title,{x:.9,y:2.0,w:9.4,h:1.2,fontFace:font,fontSize:34,bold:true,color:WHITE,margin:0,fit:"shrink"});
   slide.addText(spec.deck.purpose||"",{x:.92,y:3.55,w:8.8,h:.6,fontFace:font,fontSize:16,color:"D1EBFE",margin:0,fit:"shrink"});
-  slide.addText("vivo",{x:11.45,y:.42,w:1.1,h:.4,fontFace:"Arial",fontSize:20,bold:true,color:WHITE,margin:0,align:"right"});
+  const logoPath=path.resolve(__dirname,"../../assets/vivo-deck/vivo_wordmark_white.png");
+  if(fs.existsSync(logoPath)) slide.addImage({path:logoPath,x:11.45,y:.42,w:1.15,h:.36});
+  else slide.addText("vivo",{x:11.45,y:.42,w:1.1,h:.4,fontFace:"Arial",fontSize:20,bold:true,color:WHITE,margin:0,align:"right"});
 }
 makeCover();
 for(const s of spec.slides){
