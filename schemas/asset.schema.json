@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/asset.schema.json",
-  "title": "Brand Marketing Hub Asset Manifest",
+  "title": "Brand Marketing Hub Asset Manifest v4.1",
   "type": "object",
   "required": [
     "version",
@@ -9,7 +9,7 @@
   ],
   "properties": {
     "version": {
-      "const": "4.0"
+      "const": "4.1"
     },
     "assets": {
       "type": "array",
@@ -18,8 +18,9 @@
         "required": [
           "asset_id",
           "type",
-          "local_path",
-          "verification"
+          "verification",
+          "semantic_verified",
+          "visual_role"
         ],
         "properties": {
           "asset_id": {
@@ -36,28 +37,85 @@
               "authorized-screenshot",
               "generated-concept",
               "chart",
-              "diagram"
+              "diagram",
+              "source-extract"
             ]
           },
           "brand": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject_entity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "collaboration": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_model": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "case": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visual_role": {
+            "enum": [
+              "hero",
+              "product-proof",
+              "collaboration-proof",
+              "logo",
+              "case-study",
+              "context",
+              "background",
+              "chart",
+              "diagram",
+              "concept"
+            ]
+          },
+          "source_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(SRC-[0-9]{3,}|UNIT-[0-9]{4,})$"
           },
           "source_url": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "local_path": {
-            "type": "string",
-            "minLength": 1
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "width": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 1
           },
           "height": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 1
           },
           "verification": {
@@ -68,17 +126,71 @@
               "uncertain"
             ]
           },
+          "semantic_verified": {
+            "type": "boolean"
+          },
           "factual_evidence_allowed": {
+            "type": "boolean"
+          },
+          "embedded_required": {
             "type": "boolean"
           },
           "license_notes": {
             "type": "string"
           },
           "sha256": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "visual_role": {
+                  "enum": [
+                    "product-proof",
+                    "collaboration-proof",
+                    "case-study",
+                    "logo"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "semantic_verified": {
+                  "const": true
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "factual_evidence_allowed": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "verification": {
+                  "enum": [
+                    "verified",
+                    "user-provided"
+                  ]
+                },
+                "semantic_verified": {
+                  "const": true
+                }
+              }
+            }
+          }
+        ]
       }
     }
   },
