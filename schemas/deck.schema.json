@@ -1,37 +1,381 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/deck.schema.json",
-  "title": "Brand Marketing Hub Deck Spec",
+  "title": "Brand Marketing Hub Deck Spec v4.1",
   "type": "object",
   "required": [
     "version",
     "deck",
     "slides"
   ],
+  "$defs": {
+    "blockBase": {
+      "type": "object",
+      "required": [
+        "block_id",
+        "type"
+      ],
+      "properties": {
+        "block_id": {
+          "type": "string",
+          "pattern": "^BLK-[0-9]{3,}$"
+        },
+        "type": {
+          "type": "string"
+        },
+        "unit_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^UNIT-[0-9]{4,}$"
+          }
+        },
+        "claim_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^CLM-[0-9]{3,}$"
+          }
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^IMG-[0-9]{3,}$"
+          }
+        },
+        "preserve_exact": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "headline": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "headline"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "body": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "body_text"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "bullets": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "bullets"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "items"
+          ]
+        }
+      ]
+    },
+    "stat": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "stat"
+            },
+            "value": {},
+            "label": {
+              "type": "string"
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "value",
+            "label"
+          ]
+        }
+      ]
+    },
+    "table": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "table"
+            },
+            "headers": {
+              "type": "array"
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array"
+              }
+            }
+          },
+          "required": [
+            "rows"
+          ]
+        }
+      ]
+    },
+    "chart": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "chart"
+            },
+            "chart_type": {
+              "enum": [
+                "bar",
+                "column",
+                "line",
+                "area",
+                "pie",
+                "doughnut",
+                "scatter",
+                "waterfall",
+                "other"
+              ]
+            },
+            "data": {
+              "type": "object"
+            },
+            "source_range": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "chart_type",
+            "data"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "image"
+            },
+            "asset_id": {
+              "type": "string",
+              "pattern": "^IMG-[0-9]{3,}$"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "asset_id"
+          ]
+        }
+      ]
+    },
+    "comparison": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "comparison"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "required": [
+            "items"
+          ]
+        }
+      ]
+    },
+    "callout": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "callout"
+            },
+            "text": {
+              "type": "string"
+            },
+            "tag": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "timeline": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "timeline"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "required": [
+            "items"
+          ]
+        }
+      ]
+    },
+    "sourceFooter": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/blockBase"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "source_footer"
+            },
+            "source_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "source_ids"
+          ]
+        }
+      ]
+    }
+  },
   "properties": {
     "version": {
-      "const": "4.0"
+      "const": "4.1"
     },
     "deck": {
       "type": "object",
       "required": [
         "title",
         "purpose",
-        "template",
-        "runtime_preference"
+        "story_archetype",
+        "visual_template",
+        "template_manifest",
+        "runtime_preference",
+        "source_of_truth"
       ],
       "properties": {
         "title": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "purpose": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "audience": {
           "type": "string"
         },
-        "template": {
+        "decision_question": {
           "type": "string"
+        },
+        "story_archetype": {
+          "enum": [
+            "research",
+            "strategy",
+            "campaign",
+            "brand-partnership",
+            "business-review",
+            "project-update",
+            "proposal",
+            "custom"
+          ]
+        },
+        "visual_template": {
+          "type": "string",
+          "minLength": 1
+        },
+        "template_manifest": {
+          "type": "string",
+          "minLength": 1
         },
         "runtime_preference": {
           "type": "array",
@@ -51,6 +395,14 @@
         },
         "source_of_truth": {
           "const": "deck_spec.json"
+        },
+        "confidentiality": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ]
         }
       },
       "additionalProperties": false
@@ -80,10 +432,14 @@
             "type": "string",
             "minLength": 1
           },
-          "content": {
+          "section": {
+            "type": "string"
+          },
+          "source_unit_ids": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "string",
+              "pattern": "^UNIT-[0-9]{4,}$"
             }
           },
           "claim_ids": {
@@ -100,6 +456,46 @@
               "pattern": "^IMG-[0-9]{3,}$"
             }
           },
+          "content": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/headline"
+                },
+                {
+                  "$ref": "#/$defs/body"
+                },
+                {
+                  "$ref": "#/$defs/bullets"
+                },
+                {
+                  "$ref": "#/$defs/stat"
+                },
+                {
+                  "$ref": "#/$defs/table"
+                },
+                {
+                  "$ref": "#/$defs/chart"
+                },
+                {
+                  "$ref": "#/$defs/image"
+                },
+                {
+                  "$ref": "#/$defs/comparison"
+                },
+                {
+                  "$ref": "#/$defs/callout"
+                },
+                {
+                  "$ref": "#/$defs/timeline"
+                },
+                {
+                  "$ref": "#/$defs/sourceFooter"
+                }
+              ]
+            }
+          },
           "layout_candidates": {
             "type": "array",
             "items": {
@@ -107,10 +503,11 @@
             },
             "minItems": 1
           },
-          "must_preserve": {
+          "must_preserve_unit_ids": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^UNIT-[0-9]{4,}$"
             }
           },
           "notes": {
