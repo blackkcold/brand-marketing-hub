@@ -1,6 +1,6 @@
 # 艺人合作评估方法论（模块：celebrity）
 
-> 本模块属于 brand-marketing-hub。配套模板：`~/.vbuddy/skills/brand-marketing-hub/assets/template-celebrity-report.md`
+> 本模块属于 brand-marketing-hub。配套模板：`assets/template-celebrity-report.md`（仅作 story archetype 参考，不是视觉模板）
 
 ## 工作流
 
@@ -21,7 +21,7 @@
    - 1位主代言人/大使 —— 承担品牌故事表达（"美学大使"/"青春大使"层级）
    - N位辅助 —— 新品体验官（垂类热度）、品牌星光好友6-8位（seeding轻量合作，社交露出为主）
 8. 创新合作设计（差异化关键）：让艺人从"镜头前的人"变成"用镜头讲故事的人"——日常手持自拍推广、工作室带品牌水印、Vlog共创（微纪录片/微综艺/旅拍企划三方向）、话题共创（如#XX拍一下）。
-9. 输出：套用模板填充为md → 走 hub SKILL.md 的输出流水线转pptx。
+9. 输出：只产出艺人评估领域判断、风险、证据需求与推荐结构，交回 Source-to-Deck 的 synthesis/deck_spec。**本模块不得直接生成 Markdown deck、不得选择 renderer、不得创建另一套视觉语言。**
 
 ## 陷阱
 
