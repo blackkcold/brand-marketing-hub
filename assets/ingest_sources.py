@@ -241,7 +241,18 @@ def main()->int:
     ap.add_argument("inputs",nargs="+",type=Path)
     ap.add_argument("--out-dir",type=Path,default=Path("source_bundle"))
     ap.add_argument("--confidentiality",choices=["public","internal","confidential","restricted"],default="internal")
+    ap.add_argument("--role",action="append",default=[],metavar="FILE=ROLE",
+                    help="Override a source role: content-source|data-source|style-reference|evidence-source|mixed")
     args=ap.parse_args()
+    valid_roles={"content-source","data-source","style-reference","evidence-source","mixed"}
+    role_overrides={}
+    for item in args.role:
+        if "=" not in item:
+            raise SystemExit(f"invalid --role value: {item}; expected FILE=ROLE")
+        name,role=item.split("=",1)
+        if role not in valid_roles:
+            raise SystemExit(f"invalid source role: {role}")
+        role_overrides[Path(name).name]=role
     args.out_dir.mkdir(parents=True,exist_ok=True)
     b=UnitBuilder(args.out_dir)
     sources=[]
@@ -260,7 +271,7 @@ def main()->int:
             "url":None,
             "sha256":sha256(path),
             "confidentiality":args.confidentiality,
-            "role":"mixed" if kind=="pptx" else ("data-source" if kind in ("xlsx","csv") else "content-source")
+            "role":role_overrides.get(path.name, "data-source" if kind in ("xlsx","csv") else "content-source")
         })
         INGESTORS[kind](path,sid,b)
     (args.out_dir/"source_inventory.json").write_text(
