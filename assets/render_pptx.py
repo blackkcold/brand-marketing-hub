@@ -23,6 +23,11 @@ def main():
     args=ap.parse_args()
     if not args.pptx.exists(): raise SystemExit(f"missing pptx: {args.pptx}")
     args.out_dir.mkdir(parents=True,exist_ok=True)
+    # Reused render directories must not retain pages from an older, longer deck.
+    for stale in args.out_dir.glob("slide-*.png"):
+        stale.unlink(missing_ok=True)
+    for stale in (args.out_dir/(args.pptx.stem+".pdf"),args.out_dir/"montage.png"):
+        stale.unlink(missing_ok=True)
     soffice=cmd("soffice"); pdftoppm=cmd("pdftoppm")
     subprocess.run([soffice,"--headless","--convert-to","pdf","--outdir",str(args.out_dir),str(args.pptx)],check=True)
     pdf=args.out_dir/(args.pptx.stem+".pdf")
