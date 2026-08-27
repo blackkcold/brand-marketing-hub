@@ -1,6 +1,8 @@
-# vivo 2026 内部 deck 设计系统（deck-style）
+# vivo 2026 内部 deck 设计系统（legacy style guide）
 
-> 本文件属于 brand-marketing-hub。提炼自 8 份真实 vivo/关联 deck：泡泡玛特进度更新、S 系列试点新玩法、X500 迪士尼、漫展材料、iQOO16 名人备选、2026 FIRST 传播、X 系列艺人合作分析、品牌与 IP 营销趋势分享。实现脚本：`assets/md2pptx_vivo.py`。权威层级：VI 3.1 原件 > 本文件 > 脚本默认值。
+> **v4 定位：**本文件继续作为 vivo 视觉原则、legacy renderer 与无 reference 场景的 fallback 指南；它不再是新演示文稿的模板 source of truth。存在真实 PPTX/POTX/master/reference deck 时，应优先复用其原生 master、layout、theme、geometry 和 recurring chrome。完整 v4 流程见 `workflows/deck-production.md` 与 `workflows/runtime-adapters.md`。
+>
+> 本文件提炼自 8 份真实 vivo/关联 deck。品牌权威层级仍为：VI 官方原件 > retained/reference deck（针对其版式） > 本文件 > legacy renderer 默认值。
 
 ## 1. 设计令牌
 
