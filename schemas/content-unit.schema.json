@@ -76,6 +76,10 @@
               "shape": {
                 "type": "integer",
                 "minimum": 1
+              },
+              "image": {
+                "type": "integer",
+                "minimum": 1
               }
             },
             "additionalProperties": false
