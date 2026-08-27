@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/coverage.schema.json",
+  "title": "Source-to-Deck Coverage Manifest",
+  "type": "object",
+  "required": [
+    "version",
+    "mappings"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.1"
+    },
+    "mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "unit_id",
+          "disposition"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "pattern": "^UNIT-[0-9]{4,}$"
+          },
+          "disposition": {
+            "enum": [
+              "body",
+              "appendix",
+              "summarized",
+              "intentionally-excluded",
+              "not-applicable",
+              "missing"
+            ]
+          },
+          "slide_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^S[0-9]{2,}$"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "preservation_verified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "total_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "covered_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_missing": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
