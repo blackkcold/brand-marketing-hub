@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/asset.schema.json",
+  "title": "Brand Marketing Hub Asset Manifest",
+  "type": "object",
+  "required": [
+    "version",
+    "assets"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.0"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "type",
+          "local_path",
+          "verification"
+        ],
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "pattern": "^IMG-[0-9]{3,}$"
+          },
+          "type": {
+            "enum": [
+              "official-product-image",
+              "official-campaign-image",
+              "official-logo",
+              "official-kv",
+              "licensed-image",
+              "authorized-screenshot",
+              "generated-concept",
+              "chart",
+              "diagram"
+            ]
+          },
+          "brand": {
+            "type": "string"
+          },
+          "case": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "local_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "verification": {
+            "enum": [
+              "verified",
+              "user-provided",
+              "generated",
+              "uncertain"
+            ]
+          },
+          "factual_evidence_allowed": {
+            "type": "boolean"
+          },
+          "license_notes": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
