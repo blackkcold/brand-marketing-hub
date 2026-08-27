@@ -33,7 +33,7 @@ def main()->int:
         "workflows/deck-production.md","workflows/visual-qa.md","workflows/revision.md",
         "workflows/ingest/docx.md","workflows/ingest/xlsx.md","workflows/ingest/pptx.md",
         "brand/vivo/template-manifest.json","brand/vivo/layout-map.json",
-        "assets/ingest_sources.py","assets/init_coverage.py","assets/render_pptx.py",
+        "assets/ingest_sources.py","assets/init_coverage.py","assets/render_pptx.py","assets/validate_render.py","assets/tests/test_pptx_content_preservation.py",
         "runtime/pptxgenjs/render.js","story-archetypes/archetypes.json",
     )
     for p in required: assert (ROOT/p).exists(),p
