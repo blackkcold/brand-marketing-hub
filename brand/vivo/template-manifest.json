@@ -1,0 +1,36 @@
+{
+  "version": "4.1",
+  "template_id": "vivo-house-v4.1",
+  "brand": "vivo",
+  "visual_template": "vivo-house",
+  "reference_policy": "preferred",
+  "canonical_reference": null,
+  "artifact_template_slug": "artifact-template-vivo-internal-report",
+  "allowed_fonts": [
+    "vivo Sans",
+    "微软雅黑",
+    "Microsoft YaHei",
+    "Arial"
+  ],
+  "allowed_palettes": {
+    "house": [
+      "1E46E6",
+      "3458F6",
+      "06175E",
+      "D1EBFE",
+      "EAF2FF",
+      "F2F7FF",
+      "111111",
+      "565656",
+      "374151",
+      "FFFFFF",
+      "F6C84C",
+      "E6001E"
+    ],
+    "partner_accents": []
+  },
+  "partner_accent_policy": "allow-verified-brand-colors",
+  "layout_map": "brand/vivo/layout-map.json",
+  "fallback_style_guide": "references/deck-style.md",
+  "final_delivery_requires_reference": false
+}
