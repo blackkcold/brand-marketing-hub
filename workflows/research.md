@@ -1,30 +1,60 @@
-# v4 Research & Evidence Workflow
+# v4.1 Research & Evidence Workflow
 
 ## Objective
-Research is a mandatory upstream stage for any deck containing external facts, cases, rankings, dates, collaboration claims, product facts, prices, market data, or factual imagery. Slides are never the research database.
+Fill only decision-relevant gaps after source ingestion. Research must never overwrite user-provided source content silently.
 
-## Workflow
-1. Parse user-provided facts into provisional claims. Mark exact user-provided wording as `user-provided` and preserve it where requested.
-2. Identify claims that require external verification or freshness checks.
-3. Search official sources first: brand/company official site, official newsroom, official product/campaign page, official social/channel, regulator or public institution.
-4. When the claim is material to a recommendation, use a second independent authoritative source where practical.
-5. Record every usable claim in `evidence/claims.json` and every source in `evidence/sources.json` using `schemas/evidence.schema.json`.
-6. Report conflicts rather than silently choosing one source. Mark unresolved claims `uncertain`; do not present them as fact.
-7. Research factual imagery separately. Product/collaboration/case-study slides require traceable real assets where available.
-8. Download/embed only assets permitted by the execution environment and record them in `evidence/assets.json`.
-9. Generated images may be used only for concept/creative exploration. They may not be used as factual evidence of a real product, collaboration, person, event, or historical design.
-10. Only verified/user-provided claims may enter the final deck. Uncertain claims require explicit caveat or exclusion.
+## 0. Confidentiality / query sanitization
+Before any public web search, classify the source context: public / internal / confidential / restricted.
+- Public: search directly.
+- Internal: remove internal-only identifiers unless necessary.
+- Confidential / restricted: never send unreleased product names, internal project codes, budgets, pricing, personal data, contract terms or other sensitive text into public search queries. Rewrite the query to a public abstraction.
+If the task cannot be researched safely without revealing sensitive context, stop external lookup for that fact and use internal/user evidence only.
 
-## Source priority
-official > partner-official > authority/academic > major-media > other sources.
+## 1. Research question planner
+For each gap, define:
+- exact entity/entities;
+- fact type: identity / product / collaboration / market / date / price / performance / audience / risk / design;
+- freshness requirement;
+- locale/language likely to contain authoritative evidence;
+- whether a factual image is required.
 
-## Freshness
-For changing subjects, check publication/update date and record `retrieved_at`. A source being official does not exempt it from freshness review.
+## 2. Entity resolution and query expansion
+Resolve brand/product/person/collaboration names before collecting evidence. Expand searches across official domains, partner official domains, local-language names and relevant market spellings. Do not treat similarly named products or collaborations as identical.
+
+## 3. Source priority
+official > partner-official > regulator/public institution > academic/authority > major media > secondary source.
+
+Material recommendation claims should have corroboration where practical. Conflicts remain visible until resolved.
+
+## 4. Evidence capture
+Create claims in `evidence.json`.
+- User-file evidence points to `UNIT-xxxx`.
+- External evidence points to `SRC-xxx`.
+- Mark status verified / user-provided / uncertain / rejected.
+- Record publication/update date and retrieved_at for time-sensitive facts.
+
+## 5. Factual image research
+Research images independently from text claims.
+For product/collaboration/person/event proof:
+- prefer official or partner-official imagery;
+- verify subject entity, collaboration/product model and visual role;
+- materialize the file locally;
+- set `semantic_verified=true`;
+- set `embedded_required=true`.
+Generated concepts may never be marked factual evidence.
+
+## 6. Search stop criteria
+Stop when:
+- every decision-critical gap is verified or explicitly uncertain;
+- additional search is only duplicative;
+- the source hierarchy cannot improve;
+- privacy/confidentiality prevents safe lookup.
 
 ## Evidence gate
-Before story planning:
-- every material factual claim has at least one source_id;
-- recommendation-critical claims have adequate corroboration;
-- factual case-study images are verified or clearly user-provided;
-- contradictions are surfaced;
-- no placeholder or invented metric is treated as evidence.
+Before synthesis:
+- every critical factual claim has valid evidence_refs;
+- time-sensitive claims have freshness checked;
+- conflicts are surfaced;
+- factual assets are semantically verified;
+- no confidential information was exposed through search;
+- no placeholder/invented metric is treated as evidence.
