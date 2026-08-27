@@ -14,7 +14,7 @@ def main()->int:
     skill=read("SKILL.md")
     renderer=read("assets/md2pptx_vivo.py")
     validator=read("assets/validate_pptx.py")
-    assert "version: 4.1.0" in skill
+    assert "version: 4.1.1" in skill
     assert "Universal Source-to-Deck" in skill
     assert "coverage.json" in skill
     assert "Story Archetype ≠ Visual Template" in skill
@@ -34,7 +34,7 @@ def main()->int:
         "workflows/ingest/docx.md","workflows/ingest/xlsx.md","workflows/ingest/pptx.md",
         "brand/vivo/template-manifest.json","brand/vivo/layout-map.json",
         "assets/ingest_sources.py","assets/init_coverage.py","assets/render_pptx.py",
-        "runtime/pptxgenjs/render.js",
+        "runtime/pptxgenjs/render.js","story-archetypes/archetypes.json",
     )
     for p in required: assert (ROOT/p).exists(),p
 
