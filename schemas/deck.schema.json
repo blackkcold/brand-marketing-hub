@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/deck.schema.json",
+  "title": "Brand Marketing Hub Deck Spec",
+  "type": "object",
+  "required": [
+    "version",
+    "deck",
+    "slides"
+  ],
+  "properties": {
+    "version": {
+      "const": "4.0"
+    },
+    "deck": {
+      "type": "object",
+      "required": [
+        "title",
+        "purpose",
+        "template",
+        "runtime_preference"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "runtime_preference": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "chatgpt-presentations",
+              "powerpoint",
+              "artifact-tool",
+              "pptxgenjs",
+              "legacy-python"
+            ]
+          },
+          "minItems": 1
+        },
+        "brand_profile": {
+          "type": "string"
+        },
+        "source_of_truth": {
+          "const": "deck_spec.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    "slides": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "slide_id",
+          "intent",
+          "takeaway",
+          "content",
+          "layout_candidates"
+        ],
+        "properties": {
+          "slide_id": {
+            "type": "string",
+            "pattern": "^S[0-9]{2,}$"
+          },
+          "intent": {
+            "type": "string",
+            "minLength": 1
+          },
+          "takeaway": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "claim_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^CLM-[0-9]{3,}$"
+            }
+          },
+          "asset_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^IMG-[0-9]{3,}$"
+            }
+          },
+          "layout_candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "must_preserve": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
