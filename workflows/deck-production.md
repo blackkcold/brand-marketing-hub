@@ -1,37 +1,26 @@
-# v4 Presentation Production Workflow
+# v4.1 Presentation Production Workflow
+
+This workflow is downstream of `workflows/source-to-deck.md`. It does not ingest source files directly.
 
 ## Core contract
-The source of truth is `deck_spec.json`, not Markdown. Markdown is an optional human-readable projection only.
+`deck_spec.json` is the story/layout-intent source of truth. It is generated only after source ingestion, research and synthesis.
 
 ## Pipeline
-1. Brief Parser: resolve purpose, audience, decision, constraints, template/reference, brand profile, and must-preserve content.
-2. Research & Evidence: run `workflows/research.md`; create evidence manifests.
-3. Story Planner: produce slide intents and takeaways. Each slide must answer one question and contribute to the deck decision chain.
-4. Deck Spec: validate against `schemas/deck.schema.json`.
-5. Template Resolver: prefer a retained real reference/master deck or an OpenAI artifact template over reconstructing style from tokens.
-6. Runtime selection:
-   - ChatGPT/PowerPoint presentation capability when available and appropriate;
-   - artifact/presentation native renderer;
-   - PptxGenJS for deterministic CLI/server generation;
-   - legacy `python-pptx` renderer only as fallback.
-7. Render to PPTX.
-8. Render slides to images/PDF and create a montage/contact sheet.
-9. QA gates in order: semantic -> structural -> geometry -> visual.
-10. Repair only failed slides, rerender, and repeat QA until no P0/P1 issues remain.
-
-## Never-silent-loss rule
-User content or verified evidence must never be silently truncated, dropped, clipped, or replaced. If content cannot fit:
-1. choose a more suitable layout;
-2. reduce nonessential prose without changing meaning;
-3. split into continuation slides;
-4. fail explicitly if none is possible.
+1. Receive validated source/content/evidence/assets plus decision question.
+2. Select **story_archetype** independently from **visual_template**.
+3. Build slide intents/takeaways first; each slide answers one decision question.
+4. Populate typed content blocks with unit_ids / claim_ids / asset_ids.
+5. Generate exhaustive coverage manifest. Resolve every missing unit before render.
+6. Resolve `brand/vivo/template-manifest.json`; prefer user-supplied/retained vivo reference/master when available.
+7. Runtime selection: host-native Presentations/PowerPoint → artifact presentation runtime → PptxGenJS → legacy python-pptx.
+8. Render editable PPTX.
+9. Deterministic structural checks: placeholders, linked images, template font/palette rules, bounds.
+10. Actual render to PDF/PNG + montage.
+11. Semantic / coverage / embedded-assets / template-fidelity / structural / geometry / visual QA.
+12. Repair the smallest failing scope and repeat until P0/P1 = 0.
 
 ## Layout selection
-A slide stores multiple `layout_candidates`. The runtime should choose based on content type, density, image aspect ratio, hierarchy, and template fidelity rather than a single hard-coded `@layout`.
+Choose among layout candidates using content type, density, image aspect ratio, hierarchy and the real reference/master. Never let a content archetype create a separate visual design family.
 
-## QA severity
-- P0 Critical: factual error, wrong factual image, missing verified content, unresolved placeholder, brand/logo violation, silent data loss.
-- P1 Major: overflow, overlap, illegibility, materially bad crop, broken chart/table, missing citation on evidence slide.
-- P2 Minor: spacing/alignment inconsistency that degrades polish.
-- P3 Cosmetic: optional polish only.
-P0/P1 block delivery. P2 should be repaired where feasible. P3 may ship with notes.
+## Delivery
+The final deck must be editable where technically possible, contain embedded factual images, retain required source meaning and visually read as one vivo deck rather than a collection of unrelated templates.
