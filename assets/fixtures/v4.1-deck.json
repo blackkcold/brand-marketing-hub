@@ -1,0 +1,49 @@
+{
+  "version": "4.1",
+  "deck": {
+    "title": "vivo Source-to-Deck Runtime QA",
+    "purpose": "Validate deterministic fallback rendering",
+    "story_archetype": "custom",
+    "visual_template": "vivo-house",
+    "template_manifest": "brand/vivo/template-manifest.json",
+    "runtime_preference": [
+      "pptxgenjs"
+    ],
+    "source_of_truth": "deck_spec.json",
+    "confidentiality": "internal"
+  },
+  "slides": [
+    {
+      "slide_id": "S01",
+      "intent": "show system status",
+      "takeaway": "v4.1 fallback produces editable structured slides",
+      "content": [
+        {
+          "block_id": "BLK-001",
+          "type": "callout",
+          "text": "Source → Evidence → Story → vivo PPT"
+        },
+        {
+          "block_id": "BLK-002",
+          "type": "stat",
+          "value": "0",
+          "label": "P0/P1 allowed",
+          "unit": ""
+        },
+        {
+          "block_id": "BLK-003",
+          "type": "bullets",
+          "items": [
+            "Typed blocks",
+            "Embedded asset gate",
+            "Rendered visual QA"
+          ]
+        }
+      ],
+      "layout_candidates": [
+        "callout-stats",
+        "bullets"
+      ]
+    }
+  ]
+}
