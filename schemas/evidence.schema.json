@@ -1,18 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/blackkcold/brand-marketing-hub/schemas/evidence.schema.json",
-  "title": "Brand Marketing Hub Evidence Manifest",
+  "title": "Brand Marketing Hub Evidence Manifest v4.1",
   "type": "object",
   "required": [
     "version",
-    "claims"
+    "claims",
+    "sources"
   ],
   "properties": {
     "version": {
-      "const": "4.0"
+      "const": "4.1"
     },
     "generated_at": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "claims": {
       "type": "array",
@@ -22,7 +26,7 @@
           "claim_id",
           "statement",
           "status",
-          "source_ids"
+          "evidence_refs"
         ],
         "properties": {
           "claim_id": {
@@ -41,11 +45,11 @@
               "rejected"
             ]
           },
-          "source_ids": {
+          "evidence_refs": {
             "type": "array",
             "items": {
               "type": "string",
-              "pattern": "^SRC-[0-9]{3,}$"
+              "pattern": "^(SRC-[0-9]{3,}|UNIT-[0-9]{4,})$"
             },
             "minItems": 1
           },
@@ -68,6 +72,14 @@
             "minimum": 0,
             "maximum": 1
           },
+          "materiality": {
+            "enum": [
+              "critical",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
           "notes": {
             "type": "string"
           }
@@ -83,7 +95,6 @@
           "source_id",
           "title",
           "source_type",
-          "url",
           "retrieved_at"
         ],
         "properties": {
@@ -92,7 +103,8 @@
             "pattern": "^SRC-[0-9]{3,}$"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "source_type": {
             "enum": [
@@ -106,7 +118,10 @@
             ]
           },
           "url": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "published_at": {
             "type": [
@@ -115,10 +130,21 @@
             ]
           },
           "retrieved_at": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "freshness_checked": {
             "type": "boolean"
+          },
+          "confidentiality": {
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ]
           },
           "notes": {
             "type": "string"
